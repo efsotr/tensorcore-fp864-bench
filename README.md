@@ -1,1 +1,1 @@
-# TestFP864GEMM
+# tensorcore-fp864-bench
