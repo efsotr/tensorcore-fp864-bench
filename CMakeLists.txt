@@ -8,7 +8,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 find_package(CUDAToolkit REQUIRED)
 
 add_executable(tensorcore-fp864-bench
-    src/bench_report.cpp
+    src/runner.cpp
 )
 
 target_link_libraries(tensorcore-fp864-bench PRIVATE CUDA::cuda_driver)
