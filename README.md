@@ -1,116 +1,109 @@
 # tensorcore-fp864-bench
 
-Microbenchmark for **single-PTX-instruction Tensor Core peak FLOPS** on NVIDIA **GeForce RTX 5090** and **RTX PRO 6000 Blackwell**, both Compute Capability **12.0 / SM120**.
+Microbenchmark for **single-PTX-instruction Tensor Core peak FLOPS** on NVIDIA **GeForce RTX 5090** and **RTX PRO 6000 Blackwell** (Compute Capability **12.0 / SM120**).
 
-The timed inner loop repeatedly issues one Tensor Core PTX instruction family, keeps operands in registers, uses multiple independent accumulator chains to reduce dependency-latency effects, and performs no global/shared-memory traffic inside the repeated MMA body. The target metric is Tensor Core instruction throughput, not GEMM/library/end-to-end performance.
+The hot loop repeats exactly one PTX MMA spelling with register-resident operands and multiple independent accumulator chains. No global/shared-memory access occurs inside the repeated MMA body; the benchmark therefore targets PTX-level Tensor Core instruction throughput rather than GEMM/library/end-to-end performance.
 
-## SM120: use `mma`, not `tcgen05`
+## Architecture rule: SM120 uses warp-level `mma`, not `tcgen05`
 
-RTX 5090 and RTX PRO 6000 Blackwell are SM120 devices. For FP8/FP6/FP4 Tensor Core operations, the relevant public PTX path is warp-level `mma.sync` / `mma.sp...sync` with the SM120 low-precision extensions. NVIDIA's PTX family-specific feature table exposes `tcgen05` MMA to the SM100/SM110-family targets, while `.e3m2`, `.e2m3`, `.e2m1`, `.kind`, `.block_scale`, and `.scale_vec` extensions for `mma{.sp}` are exposed to the SM120 family.
+For RTX 5090 / RTX PRO 6000, the relevant low-precision PTX interface is `mma.sync` / `mma.sp::ordered_metadata.sync`. NVIDIA's family-specific PTX feature table exposes `tcgen05.mma` to the SM100/SM110 family, while the FP6/FP4 `.e3m2`, `.e2m3`, `.e2m1`, `.kind`, `.block_scale`, and `.scale_vec` extensions of warp-level `mma{.sp}` are exposed to SM120.
 
 Primary references:
 
 - Current PTX ISA: https://docs.nvidia.com/cuda/parallel-thread-execution/
-- PTX ISA 9.0 PDF: https://docs.nvidia.com/cuda/pdf/ptx_isa_9.0.pdf
 - PTX ISA 9.1 PDF: https://docs.nvidia.com/cuda/pdf/ptx_isa_9.1.pdf
 - NVIDIA CUDA GPU Compute Capability table: https://developer.nvidia.com/cuda/gpus
-- CUTLASS SM120 warp MMA implementation, used only as a secondary cross-check: https://github.com/NVIDIA/cutlass/blob/main/python/CuTeDSL/cutlass/cute/nvgpu/warp/mma.py
+- CUTLASS SM120 warp MMA implementation, secondary cross-check only: https://github.com/NVIDIA/cutlass/blob/main/python/CuTeDSL/cutlass/cute/nvgpu/warp/mma.py
 
-## Coverage model
+The generated PTX uses **`.version 9.1` + `.target sm_120a`**. PTX 9.1 is required to include the documented `mxf4nvf4 + ue8m0 + scale_vec::4X` form introduced in PTX ISA 9.1.
 
-`src/main.cpp` generates two classes of cases:
+## Coverage classes
 
-1. **Documented** — combinations directly covered by NVIDIA PTX grammar, valid-combination tables, and SM120 target notes. These are JIT-compiled and benchmarked.
-2. **Undocumented probes** — combinations that look plausible but are not defined as valid by the NVIDIA PTX documentation. These are compile-probed only. If a current driver happens to accept one, it is reported as `ACCEPTED_UNDOCUMENTED`; that is implementation behavior, not an ISA guarantee.
+`src/bench.cpp` separates three classes:
 
-The documented manifest covers:
+1. **DOCUMENTED** — directly present in the normative PTX syntax/valid-combination tables and applicable SM120 target notes. These are benchmarked.
+2. **DOC_AMBIGUOUS** — NVIDIA prose/ISA notes claim support, but the normative syntax table does not define the spelling. These are compile-probed only.
+3. **UNDOCUMENTED** — plausible-looking combinations not defined by NVIDIA's normative grammar/table. These are compile-probed only.
 
-- legacy FP8 `mma.sync` using `e4m3` / `e5m2`, including mixed E4M3/E5M2 forms;
-- SM120 `.kind::f8f6f4` dense MMA using A/B types from `e4m3`, `e5m2`, `e3m2`, `e2m3`, `e2m1`;
-- block-scaled `.kind::mxf8f6f4`, `.kind::mxf4`, and `.kind::mxf4nvf4` MMA;
-- sparse `mma.sp.sync` and `mma.sp::ordered_metadata.sync` variants where the PTX ISA defines them;
-- F16/F32 accumulator variants where the corresponding PTX grammar permits them.
+A JIT accepting a non-documented spelling is reported as an observation; it never upgrades that spelling to documented ISA support.
 
-For block scaling, NVIDIA PTX Table 37 defines the following combinations:
+## Documented FP8 / FP6 / FP4 space
+
+### Dense unscaled
+
+- Legacy FP8: `e4m3` / `e5m2`, `m16n8k16` and `m16n8k32`, independent A/B FP8 format selection, F16/F32 C/D where defined.
+- SM120 `kind::f8f6f4`: fixed shape `m16n8k32`, A/B independently selected from `e4m3`, `e5m2`, `e3m2`, `e2m3`, `e2m1`, with F16/F32 C/D.
+
+### Dense block-scaled
 
 | kind | A/B element types | scale type | scale vector |
 |---|---|---|---|
 | `mxf8f6f4` | `e4m3`, `e5m2`, `e3m2`, `e2m3`, `e2m1` | `ue8m0` | `1X` |
 | `mxf4` | `e2m1` | `ue8m0` | `2X` |
-| `mxf4nvf4` | `e2m1` | `ue8m0` | `2X` or `4X` |
+| `mxf4nvf4` | `e2m1` | `ue8m0` | `2X`, `4X` |
 | `mxf4nvf4` | `e2m1` | `ue4m3` | `4X` |
 
-A and B type qualifiers are enumerated independently where the PTX grammar permits independent `atype` / `btype` selection.
+The manifest includes both the explicit and documented default spellings where applicable: omitting `scale_vec` means `1X` for `mxf8f6f4` and `2X` for `mxf4`; `mxf4nvf4` requires an explicit `scale_vec`. Block-scaled C/D are F32 in the documented grammar.
 
-## Deliberately included undocumented / negative probes
+### Sparse
 
-Representative probes include:
+The normative PTX 9.3 grammar currently defines:
 
-- `tcgen05.mma` targeting `sm_120a`;
-- dense `.kind::f8f6f4` with `m16n8k64`;
-- FP6/FP4 types used in the older FP8 spelling without `.kind::f8f6f4`;
-- `.kind::mxf8f6f4` with `scale_vec::2X` / `4X` or UE4M3 scales;
-- `.kind::mxf4` with `scale_vec::1X` / `4X` or UE4M3 scales;
-- `.kind::mxf4nvf4` with UE4M3 + `scale_vec::2X`, or with the mandatory scale-vector qualifier omitted;
-- block-scaled MMA with F16 accumulator/result types where the PTX grammar fixes them to F32;
-- plain sparse `.sp` with `mxf4` / `mxf4nvf4`, for which the documented SM120 path is the ordered-metadata form;
-- alternative layouts such as `row.row` where the documented low-precision grammar is fixed to `row.col`.
+- legacy FP8 sparse: `m16n8k64`, F32 C/D, both `.sp` and `.sp::ordered_metadata`;
+- `kind::f8f6f4`: `m16n8k64`, **`sp::ordered_metadata` only**, F16/F32 C/D;
+- block-scaled `mxf8f6f4`: `m16n8k64`, **`sp::ordered_metadata` only**;
+- block-scaled `mxf4` / `mxf4nvf4`: `m16n8k128`, **`sp::ordered_metadata` only**.
 
-These cases intentionally separate three questions: **is the spelling plausible, does the current CUDA JIT accept it, and does NVIDIA document it as supported?** Only the last one determines the benchmark's documented-support classification.
+There is one NVIDIA-documentation inconsistency worth preserving as a probe: the sparse PTX ISA Notes say SM120 adds FP8 `m16n8k32 + f16` support, but the normative sparse syntax table still contains no FP8 `m16n8k32/f16` production. The repository classifies those spellings as `DOC_AMBIGUOUS`, not `DOCUMENTED`.
+
+For ordered metadata, the source uses `0x44444444`; each 4-bit nibble encodes increasing indices `(0,1)`. Block-scale selectors use the valid canonical `{0,0}` values, and scale bytes use `0x38` so neither UE8M0 (`0xff`) nor UE4M3 (`0x7f`) NaN encodings are introduced.
+
+## Plausible but undefined probes
+
+The repository explicitly probes important boundaries, including:
+
+- `tcgen05.mma` on `sm_120a`;
+- dense `kind::f8f6f4` with `k16` / `k64` instead of the defined `k32`;
+- FP6/FP4 (`e3m2`, `e2m3`, `e2m1`) used without `kind::f8f6f4`;
+- invalid block-scale table pairings such as `mxf8f6f4 + 2X`, `mxf8f6f4 + ue4m3`, `mxf4 + 1X`, `mxf4 + ue4m3`, `mxf4nvf4 + ue4m3 + 2X`;
+- `mxf4nvf4` with omitted `scale_vec`;
+- block-scaled MMA with F16 C/D;
+- plain `.sp` versions of sparse `f8f6f4`, `mxf8f6f4`, and `mxf4` where the normative grammar is ordered-metadata-only;
+- `row.row` low-precision layout where the grammar is fixed to `row.col`.
+
+The invalid-string space is unbounded, so probes target meaningful grammar/table boundaries rather than arbitrary malformed PTX.
 
 ## FLOP accounting
 
-For dense `m16n8kK`, one warp-level MMA instruction is counted as:
+A dense `m16n8kK` warp MMA is counted as `2 * 16 * 8 * K` FLOPs. Sparse results report both `peak_logical_tflops = 2*M*N*K` and `peak_nonzero_tflops = logical/2`, avoiding ambiguity between dense-equivalent sparse throughput and actual nonzero multiply-add work.
 
-```text
-2 * 16 * 8 * K FLOPs
-```
+Each documented case is warmed up, timed repeatedly (default 5 repetitions), and the best device-event time is used for `peak_logical_tflops`; the mean is also reported. RTX 5090 and RTX PRO 6000 share the same SM120 PTX capability class but can have different device-level peaks because SM count, clocks, power, and thermal limits differ.
 
-For sparse MMA, the program reports both:
+## Build / run
 
-- `logical_tflops`: `2*M*N*K`, corresponding to the logical dense operation represented by the sparse instruction;
-- `nonzero_tflops`: half of the logical value, corresponding to the 50%-sparse A operand's nonzero multiply-add work.
-
-This avoids silently mixing NVIDIA-style sparse logical throughput with physical nonzero work.
-
-## Measurement method
-
-Each benchmark kernel is generated as PTX and JIT-loaded through the CUDA Driver API. The hot loop contains multiple independent accumulator chains of the **same PTX MMA spelling**, with fixed register-resident A/B fragments. The loop performs no memory accesses; only a final liveness store is emitted after the timed repeated MMA body.
-
-The default launch creates enough warps to occupy all SMs and uses a long loop so launch/event overhead is negligible relative to Tensor Core work. Device-level peak results can differ between RTX 5090 and RTX PRO 6000 despite identical SM120 instruction support because SM count, clocks, power limits, and thermal behavior differ.
-
-## Build
-
-Requires a CUDA 13.x-era toolkit/driver with SM120 support.
+Requires a CUDA toolkit/driver capable of JIT-compiling PTX 9.1 for SM120.
 
 ```bash
 cmake -S . -B build
 cmake --build build -j
-```
-
-## Run
-
-```bash
 ./build/tensorcore-fp864-bench
 ```
 
 Options:
 
 ```text
---iters N                 loop iterations per kernel (default: 2000)
+--device N                CUDA device index (default: 0)
+--iters N                 loop iterations (default: 4000)
 --blocks-per-sm N         work multiplier per SM (default: 4)
 --chains N                independent accumulator chains: 1,2,4,8 (default: 8)
+--repeats N               timed repetitions; best is peak (default: 5)
 --filter TEXT             select case names containing TEXT
---documented-only         skip undocumented compile probes
---probes-only             compile/probe without timing documented cases
+--include-probes          also compile DOC_AMBIGUOUS / UNDOCUMENTED cases
+--probes-only             compile only non-documented probes
+--list                    list manifest without CUDA initialization
 --verbose-jit             print CUDA JIT logs
 ```
 
-## Result interpretation
+Result tags include `PASS`, `FAIL_DOCUMENTED`, `ACCEPTED_DOC_AMBIGUOUS`, `REJECTED_DOC_AMBIGUOUS`, `ACCEPTED_UNDOCUMENTED`, and `REJECTED_UNDOCUMENTED`.
 
-- `PASS`: documented combination JIT-compiled and ran.
-- `FAIL_DOCUMENTED`: documented combination was rejected or failed to launch; record CUDA/PTX/driver versions before drawing an ISA conclusion.
-- `REJECTED_UNDOCUMENTED`: expected result for a non-documented combination.
-- `ACCEPTED_UNDOCUMENTED`: current toolchain accepted a non-documented spelling; do **not** treat this as portable or specified support.
-
-The documentation-status classification is intentionally independent from the observed compiler/JIT result.
+See `docs/ptx-coverage.md` for the audit rationale. The source was statically reviewed against NVIDIA PTX documentation; no GPU benchmark or local command was run while creating the repository.
