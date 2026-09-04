@@ -1,0 +1,109 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/efsotr/tensorcore-fp864-bench/schemas/run.schema.json",
+  "title": "tensorcore-fp864-bench complete run",
+  "type": "object",
+  "required": ["schema_version", "timestamp_utc", "device", "ptx", "sass", "benchmark", "cases"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "timestamp_utc": {"type": "string"},
+    "device": {
+      "type": "object",
+      "required": ["name", "cc", "sm_count", "reported_clock_mhz", "driver_api"],
+      "properties": {
+        "name": {"type": "string"},
+        "cc": {"type": "string"},
+        "sm_count": {"type": "integer", "minimum": 1},
+        "reported_clock_mhz": {"type": "number", "minimum": 0},
+        "driver_api": {"type": "integer", "minimum": 0}
+      },
+      "additionalProperties": false
+    },
+    "ptx": {
+      "type": "object",
+      "required": ["version", "target"],
+      "properties": {
+        "version": {"type": "string"},
+        "target": {"type": "string"}
+      },
+      "additionalProperties": false
+    },
+    "sass": {
+      "type": "object",
+      "required": ["required", "tool", "tool_ok"],
+      "properties": {
+        "required": {"type": "boolean"},
+        "tool": {"type": "string"},
+        "tool_ok": {"type": "boolean"}
+      },
+      "additionalProperties": false
+    },
+    "benchmark": {
+      "type": "object",
+      "required": ["iters", "blocks_per_sm", "chains", "inner_unroll", "repeats"],
+      "properties": {
+        "iters": {"type": "integer", "minimum": 1},
+        "blocks_per_sm": {"type": "integer", "minimum": 1},
+        "chains": {"enum": [1, 2, 4, 8]},
+        "inner_unroll": {"type": "integer", "minimum": 1},
+        "repeats": {"type": "integer", "minimum": 1}
+      },
+      "additionalProperties": false
+    },
+    "cases": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/case"}
+    }
+  },
+  "$defs": {
+    "case": {
+      "type": "object",
+      "required": ["status", "doc_class", "name", "opcode", "sparse", "block_scale", "accumulator", "shape", "best_ms", "mean_ms", "peak_logical_tflops", "mean_logical_tflops", "peak_nonzero_tflops", "regs_per_thread", "sass", "ptx_path", "cubin_path", "note"],
+      "properties": {
+        "status": {"type": "string"},
+        "doc_class": {"enum": ["DOCUMENTED", "DOC_AMBIGUOUS", "UNDOCUMENTED"]},
+        "name": {"type": "string"},
+        "opcode": {"type": "string"},
+        "sparse": {"type": "boolean"},
+        "block_scale": {"type": "boolean"},
+        "accumulator": {"enum": ["f16", "f32"]},
+        "shape": {
+          "type": "array",
+          "prefixItems": [
+            {"type": "integer", "minimum": 1},
+            {"type": "integer", "minimum": 1},
+            {"type": "integer", "minimum": 1}
+          ],
+          "minItems": 3,
+          "maxItems": 3
+        },
+        "best_ms": {"type": "number", "minimum": 0},
+        "mean_ms": {"type": "number", "minimum": 0},
+        "peak_logical_tflops": {"type": "number", "minimum": 0},
+        "mean_logical_tflops": {"type": "number", "minimum": 0},
+        "peak_nonzero_tflops": {"type": "number", "minimum": 0},
+        "regs_per_thread": {"type": "integer", "minimum": 0},
+        "sass": {
+          "type": "object",
+          "required": ["status", "family", "expectation", "expected_mma_count", "matched_mma_count", "total_tensor_mma_count", "text_path", "json_path"],
+          "properties": {
+            "status": {"type": "string"},
+            "family": {"type": "string"},
+            "expectation": {"type": "string"},
+            "expected_mma_count": {"type": "integer", "minimum": 0},
+            "matched_mma_count": {"type": "integer", "minimum": 0},
+            "total_tensor_mma_count": {"type": "integer", "minimum": 0},
+            "text_path": {"type": "string"},
+            "json_path": {"type": "string"}
+          },
+          "additionalProperties": false
+        },
+        "ptx_path": {"type": "string"},
+        "cubin_path": {"type": "string"},
+        "note": {"type": "string"}
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
