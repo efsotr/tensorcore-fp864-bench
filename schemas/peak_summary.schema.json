@@ -3,12 +3,13 @@
   "$id": "https://github.com/efsotr/tensorcore-fp864-bench/schemas/peak_summary.schema.json",
   "title": "tensorcore-fp864-bench peak summary",
   "type": "object",
-  "required": ["schema_version", "device", "scope", "sass_required", "headline", "nvfp4_reference"],
+  "required": ["schema_version", "device", "scope", "sass_audit_enabled", "sass_gates_peak_selection", "headline", "nvfp4_reference"],
   "properties": {
-    "schema_version": {"const": 1},
+    "schema_version": {"const": 2},
     "device": {"type": "string"},
     "scope": {"type": "string"},
-    "sass_required": {"type": "boolean"},
+    "sass_audit_enabled": {"type": "boolean"},
+    "sass_gates_peak_selection": {"const": false},
     "headline": {
       "type": "array",
       "minItems": 12,
@@ -25,7 +26,7 @@
         },
         {
           "type": "object",
-          "required": ["available", "peak_tflops", "format_a", "format_b", "case", "ptx", "sass_status", "sass_family"],
+          "required": ["available", "peak_tflops", "format_a", "format_b", "case", "ptx", "sass_status", "sass_matches_expected", "sass_family"],
           "properties": {
             "available": {"const": true},
             "peak_tflops": {"type": "number", "minimum": 0},
@@ -34,6 +35,7 @@
             "case": {"type": "string"},
             "ptx": {"type": "string"},
             "sass_status": {"type": "string"},
+            "sass_matches_expected": {"type": ["boolean", "null"]},
             "sass_family": {"type": "string"}
           },
           "additionalProperties": false
@@ -57,6 +59,7 @@
         "case": {"type": "string"},
         "ptx": {"type": "string"},
         "sass_status": {"type": "string"},
+        "sass_matches_expected": {"type": ["boolean", "null"]},
         "sass_family": {"type": "string"}
       },
       "additionalProperties": false
