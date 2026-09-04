@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/efsotr/tensorcore-fp864-bench/schemas/peak_summary.schema.json",
+  "title": "tensorcore-fp864-bench peak summary",
+  "type": "object",
+  "required": ["schema_version", "device", "scope", "sass_required", "headline", "nvfp4_reference"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "device": {"type": "string"},
+    "scope": {"type": "string"},
+    "sass_required": {"type": "boolean"},
+    "headline": {
+      "type": "array",
+      "minItems": 12,
+      "maxItems": 12,
+      "items": {"$ref": "#/$defs/peak"}
+    },
+    "nvfp4_reference": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["available"],
+          "properties": {"available": {"const": false}},
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["available", "peak_tflops", "format_a", "format_b", "case", "ptx", "sass_status", "sass_family"],
+          "properties": {
+            "available": {"const": true},
+            "peak_tflops": {"type": "number", "minimum": 0},
+            "format_a": {"type": "string"},
+            "format_b": {"type": "string"},
+            "case": {"type": "string"},
+            "ptx": {"type": "string"},
+            "sass_status": {"type": "string"},
+            "sass_family": {"type": "string"}
+          },
+          "additionalProperties": false
+        }
+      ]
+    }
+  },
+  "$defs": {
+    "peak": {
+      "type": "object",
+      "required": ["mode", "pair", "available"],
+      "properties": {
+        "mode": {"enum": ["without_mx", "with_mx"]},
+        "pair": {"enum": ["fp8", "fp6", "fp4", "fp8xfp6", "fp8xfp4", "fp6xfp4"]},
+        "available": {"type": "boolean"},
+        "peak_tflops": {"type": "number", "minimum": 0},
+        "format_a": {"type": "string"},
+        "format_b": {"type": "string"},
+        "direction": {"type": "string"},
+        "accumulator": {"enum": ["f16", "f32"]},
+        "case": {"type": "string"},
+        "ptx": {"type": "string"},
+        "sass_status": {"type": "string"},
+        "sass_family": {"type": "string"}
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
