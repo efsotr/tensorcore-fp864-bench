@@ -2,11 +2,11 @@
 
 Microbenchmark for **single-PTX-instruction Tensor Core peak FLOPS** on NVIDIA **GeForce RTX 5090** and **RTX PRO 6000 Blackwell** (Compute Capability **12.0 / SM120**).
 
-The hot loop repeats exactly one PTX MMA spelling with register-resident operands and multiple independent accumulator chains. No global/shared-memory access occurs inside the repeated MMA body; the benchmark therefore targets PTX-level Tensor Core instruction throughput rather than GEMM/library/end-to-end performance.
+The hot loop repeatedly issues one PTX MMA spelling with register-resident operands, multiple semantically independent accumulator chains, and four-way inner unrolling. There is no global/shared-memory traffic inside the repeated MMA body; this measures PTX-level Tensor Core instruction throughput rather than GEMM/library/end-to-end performance.
 
 ## Architecture rule: SM120 uses warp-level `mma`, not `tcgen05`
 
-For RTX 5090 / RTX PRO 6000, the relevant low-precision PTX interface is `mma.sync` / `mma.sp::ordered_metadata.sync`. NVIDIA's family-specific PTX feature table exposes `tcgen05.mma` to the SM100/SM110 family, while the FP6/FP4 `.e3m2`, `.e2m3`, `.e2m1`, `.kind`, `.block_scale`, and `.scale_vec` extensions of warp-level `mma{.sp}` are exposed to SM120.
+For RTX 5090 / RTX PRO 6000, the relevant public low-precision PTX interface is warp-level `mma.sync` and sparse `mma.sp{::ordered_metadata}.sync`. NVIDIA's family-specific PTX feature table exposes `tcgen05.mma` to the SM100/SM110 family, while the FP6/FP4 `.e3m2`, `.e2m3`, `.e2m1`, `.kind`, `.block_scale`, and `.scale_vec` extensions of warp-level `mma{.sp}` are exposed to SM120.
 
 Primary references:
 
@@ -15,26 +15,28 @@ Primary references:
 - NVIDIA CUDA GPU Compute Capability table: https://developer.nvidia.com/cuda/gpus
 - CUTLASS SM120 warp MMA implementation, secondary cross-check only: https://github.com/NVIDIA/cutlass/blob/main/python/CuTeDSL/cutlass/cute/nvgpu/warp/mma.py
 
-The generated PTX uses **`.version 9.1` + `.target sm_120a`**. PTX 9.1 is required to include the documented `mxf4nvf4 + ue8m0 + scale_vec::4X` form introduced in PTX ISA 9.1.
+Generated PTX uses **`.version 9.1` + `.target sm_120a`**. PTX 9.1 is required to cover the documented `mxf4nvf4 + ue8m0 + scale_vec::4X` form introduced in PTX ISA 9.1.
 
 ## Coverage classes
 
-`src/bench.cpp` separates three classes:
+`src/bench.cpp` uses three classes:
 
-1. **DOCUMENTED** — directly present in the normative PTX syntax/valid-combination tables and applicable SM120 target notes. These are benchmarked.
-2. **DOC_AMBIGUOUS** — NVIDIA prose/ISA notes claim support, but the normative syntax table does not define the spelling. These are compile-probed only.
-3. **UNDOCUMENTED** — plausible-looking combinations not defined by NVIDIA's normative grammar/table. These are compile-probed only.
+1. **DOCUMENTED** — directly defined by normative PTX syntax / valid-combination tables and applicable SM120 target notes. These are benchmarked.
+2. **DOC_AMBIGUOUS** — NVIDIA ISA notes/prose claim support, but the current normative syntax does not define the spelling. These are JIT-probed only.
+3. **UNDOCUMENTED** — plausible-looking combinations not defined by NVIDIA's normative grammar/table. These are JIT-probed only.
 
-A JIT accepting a non-documented spelling is reported as an observation; it never upgrades that spelling to documented ISA support.
+A JIT accepting a non-documented spelling is reported as an observation and is never treated as an ISA guarantee or executed by the benchmark.
 
-## Documented FP8 / FP6 / FP4 space
+The canonical base manifest contains **234 documented cases, 8 documentation-ambiguous probes, and 17 deliberately undocumented probes**.
+
+## Documented FP8 / FP6 / FP4 instruction space
 
 ### Dense unscaled
 
-- Legacy FP8: `e4m3` / `e5m2`, `m16n8k16` and `m16n8k32`, independent A/B FP8 format selection, F16/F32 C/D where defined.
-- SM120 `kind::f8f6f4`: fixed shape `m16n8k32`, A/B independently selected from `e4m3`, `e5m2`, `e3m2`, `e2m3`, `e2m1`, with F16/F32 C/D.
+- Legacy FP8: `e4m3` / `e5m2`, `m16n8k16` and `m16n8k32`, independent A/B format selection, F16/F32 C/D where defined.
+- SM120 `kind::f8f6f4`: `m16n8k32`, A/B independently selected from `e4m3`, `e5m2`, `e3m2`, `e2m3`, `e2m1`, with F16/F32 C/D.
 
-### Dense block-scaled
+### Block-scaled
 
 | kind | A/B element types | scale type | scale vector |
 |---|---|---|---|
@@ -43,41 +45,54 @@ A JIT accepting a non-documented spelling is reported as an observation; it neve
 | `mxf4nvf4` | `e2m1` | `ue8m0` | `2X`, `4X` |
 | `mxf4nvf4` | `e2m1` | `ue4m3` | `4X` |
 
-The manifest includes both the explicit and documented default spellings where applicable: omitting `scale_vec` means `1X` for `mxf8f6f4` and `2X` for `mxf4`; `mxf4nvf4` requires an explicit `scale_vec`. Block-scaled C/D are F32 in the documented grammar.
+Both documented explicit/default spellings are included where applicable: omitted `scale_vec` means `1X` for `mxf8f6f4` and `2X` for `mxf4`; it is mandatory for `mxf4nvf4`. Block-scaled C/D are F32.
 
 ### Sparse
 
-The normative PTX 9.3 grammar currently defines:
+Current normative PTX syntax defines:
 
-- legacy FP8 sparse: `m16n8k64`, F32 C/D, both `.sp` and `.sp::ordered_metadata`;
-- `kind::f8f6f4`: `m16n8k64`, **`sp::ordered_metadata` only**, F16/F32 C/D;
-- block-scaled `mxf8f6f4`: `m16n8k64`, **`sp::ordered_metadata` only**;
-- block-scaled `mxf4` / `mxf4nvf4`: `m16n8k128`, **`sp::ordered_metadata` only**.
+- legacy FP8: `m16n8k64`, F32 C/D, both `.sp` and `.sp::ordered_metadata`;
+- `kind::f8f6f4`: `m16n8k64`, **ordered metadata only**, F16/F32 C/D;
+- `mxf8f6f4`: `m16n8k64`, **ordered metadata only**;
+- `mxf4` / `mxf4nvf4`: `m16n8k128`, **ordered metadata only**.
 
-There is one NVIDIA-documentation inconsistency worth preserving as a probe: the sparse PTX ISA Notes say SM120 adds FP8 `m16n8k32 + f16` support, but the normative sparse syntax table still contains no FP8 `m16n8k32/f16` production. The repository classifies those spellings as `DOC_AMBIGUOUS`, not `DOCUMENTED`.
+The sparse ISA notes separately claim SM120 support for FP8 `m16n8k32 + f16`, while the current normative sparse syntax contains no such FP8 production. Those 8 variants are intentionally classified `DOC_AMBIGUOUS` rather than silently promoted to supported syntax.
 
-For ordered metadata, the source uses `0x44444444`; each 4-bit nibble encodes increasing indices `(0,1)`. Block-scale selectors use the valid canonical `{0,0}` values, and scale bytes use `0x38` so neither UE8M0 (`0xff`) nor UE4M3 (`0x7f`) NaN encodings are introduced.
+## Exhaustive operand selectors
+
+By default, each documented opcode uses canonical legal operand selectors (`sparse f=0`, block-scale selectors `{0,0}`). With `--all-operands`, the manifest additionally expands **every selector value explicitly defined by PTX**:
+
+- sparse selector `f = 0,1,2,3`;
+- `scale_vec::1X`: `byte-id-a/b = 0..3`, `thread-id-a = 0..1`, `thread-id-b = 0..3`;
+- `scale_vec::2X`: `byte-id-a/b = {0,2}`, `thread-id-a = 0..1`, `thread-id-b = 0..3`;
+- `scale_vec::4X`: `byte-id-a/b = 0`, `thread-id-a = 0..1`, `thread-id-b = 0..3`.
+
+This keeps the normal benchmark practical while retaining an exhaustive mode for the documented PTX operand space. Values outside NVIDIA's selector table are not executed because PTX defines their behavior as undefined.
 
 ## Plausible but undefined probes
 
-The repository explicitly probes important boundaries, including:
+Representative negative probes include:
 
-- `tcgen05.mma` on `sm_120a`;
-- dense `kind::f8f6f4` with `k16` / `k64` instead of the defined `k32`;
-- FP6/FP4 (`e3m2`, `e2m3`, `e2m1`) used without `kind::f8f6f4`;
-- invalid block-scale table pairings such as `mxf8f6f4 + 2X`, `mxf8f6f4 + ue4m3`, `mxf4 + 1X`, `mxf4 + ue4m3`, `mxf4nvf4 + ue4m3 + 2X`;
-- `mxf4nvf4` with omitted `scale_vec`;
-- block-scaled MMA with F16 C/D;
-- plain `.sp` versions of sparse `f8f6f4`, `mxf8f6f4`, and `mxf4` where the normative grammar is ordered-metadata-only;
-- `row.row` low-precision layout where the grammar is fixed to `row.col`.
+- `tcgen05.mma` targeting `sm_120a`;
+- dense `kind::f8f6f4` with `k16` / `k64` instead of `k32`;
+- FP6/FP4 types without `kind::f8f6f4`;
+- invalid block-scale pairings (`mxf8f6f4 + 2X`, `mxf8f6f4 + ue4m3`, `mxf4 + 1X`, `mxf4 + ue4m3`, `mxf4nvf4 + ue4m3 + 2X`);
+- `mxf4nvf4` without mandatory `scale_vec`;
+- block-scaled F16 C/D;
+- plain `.sp` versions of kind-qualified / block-scaled sparse forms whose normative grammar is ordered-metadata-only;
+- `row.row` for low-precision forms whose grammar is fixed to `row.col`.
 
-The invalid-string space is unbounded, so probes target meaningful grammar/table boundaries rather than arbitrary malformed PTX.
+The syntactically imaginable invalid space is unbounded, so probes target meaningful ISA/table boundaries rather than arbitrary malformed strings.
 
-## FLOP accounting
+## Peak-FLOPS methodology
 
-A dense `m16n8kK` warp MMA is counted as `2 * 16 * 8 * K` FLOPs. Sparse results report both `peak_logical_tflops = 2*M*N*K` and `peak_nonzero_tflops = logical/2`, avoiding ambiguity between dense-equivalent sparse throughput and actual nonzero multiply-add work.
+A dense `m16n8kK` warp MMA is counted as `2 * 16 * 8 * K` FLOPs. Sparse results report both `peak_logical_tflops = 2*M*N*K` and `peak_nonzero_tflops = logical/2`, separating dense-equivalent sparse throughput from nonzero multiply-add work.
 
-Each documented case is warmed up, timed repeatedly (default 5 repetitions), and the best device-event time is used for `peak_logical_tflops`; the mean is also reported. RTX 5090 and RTX PRO 6000 share the same SM120 PTX capability class but can have different device-level peaks because SM count, clocks, power, and thermal limits differ.
+Each chain starts from a different accumulator seed so equivalent MMA chains cannot legally be collapsed into one common subexpression. The loop issues `chains × 4` MMAs per iteration before branching; by default that is 32 MMA instructions per warp per loop iteration. The kernel is warmed up, timed 5 times with CUDA device events, and reports both the best (peak) and mean throughput. A/B, accumulator, sparse metadata, and scale metadata remain register-resident throughout the repeated body.
+
+The input byte patterns obey the required FP6/FP4 padding rules. Ordered sparse metadata uses `0x44444444`; scale bytes use `0x38`, avoiding the reserved UE8M0 (`0xff`) and UE4M3 (`0x7f`) NaN encodings.
+
+RTX 5090 and RTX PRO 6000 share the SM120 PTX capability class but can produce different device-level peaks due to SM count, clocks, power limits, and thermal behavior.
 
 ## Build / run
 
@@ -98,12 +113,13 @@ Options:
 --chains N                independent accumulator chains: 1,2,4,8 (default: 8)
 --repeats N               timed repetitions; best is peak (default: 5)
 --filter TEXT             select case names containing TEXT
---include-probes          also compile DOC_AMBIGUOUS / UNDOCUMENTED cases
---probes-only             compile only non-documented probes
---list                    list manifest without CUDA initialization
+--all-operands            expand all documented sparse/block-scale selector values
+--include-probes          also JIT-probe DOC_AMBIGUOUS / UNDOCUMENTED cases
+--probes-only             JIT-probe only non-documented cases
+--list                    list the selected manifest without CUDA initialization
 --verbose-jit             print CUDA JIT logs
 ```
 
 Result tags include `PASS`, `FAIL_DOCUMENTED`, `ACCEPTED_DOC_AMBIGUOUS`, `REJECTED_DOC_AMBIGUOUS`, `ACCEPTED_UNDOCUMENTED`, and `REJECTED_UNDOCUMENTED`.
 
-See `docs/ptx-coverage.md` for the audit rationale. The source was statically reviewed against NVIDIA PTX documentation; no GPU benchmark or local command was run while creating the repository.
+See `docs/ptx-coverage.md` for the classification audit. The repository was created by static inspection only: **no local command, compiler invocation, CUDA JIT, RTX 5090 benchmark, or RTX PRO 6000 benchmark was run while creating it**.
