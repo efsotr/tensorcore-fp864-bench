@@ -19,7 +19,7 @@ Generated PTX uses **`.version 9.1` + `.target sm_120a`**. PTX 9.1 is required t
 
 ## Coverage classes
 
-`src/bench.cpp` uses three classes:
+The audited manifest and PTX generator live in `src/bench.cpp`; `src/bench_report.cpp` adds persistent reporting, exact CUBIN capture, SASS validation, and Peak-summary extraction. Cases are separated into three classes:
 
 1. **DOCUMENTED** — directly defined by normative PTX syntax / valid-combination tables and applicable SM120 target notes. These are benchmarked.
 2. **DOC_AMBIGUOUS** — NVIDIA ISA notes/prose claim support, but the current normative syntax does not define the spelling. These are JIT-probed only.
@@ -67,7 +67,7 @@ By default, each documented opcode uses canonical legal operand selectors (`spar
 - `scale_vec::2X`: `byte-id-a/b = {0,2}`, `thread-id-a = 0..1`, `thread-id-b = 0..3`;
 - `scale_vec::4X`: `byte-id-a/b = 0`, `thread-id-a = 0..1`, `thread-id-b = 0..3`.
 
-This keeps the normal benchmark practical while retaining an exhaustive mode for the documented PTX operand space. Values outside NVIDIA's selector table are not executed because PTX defines their behavior as undefined.
+Values outside NVIDIA's selector table are not executed because PTX defines their behavior as undefined.
 
 ## Plausible but undefined probes
 
@@ -84,19 +84,59 @@ Representative negative probes include:
 
 The syntactically imaginable invalid space is unbounded, so probes target meaningful ISA/table boundaries rather than arbitrary malformed strings.
 
+## SASS verification is a default gate
+
+A documented case is not timed merely because its PTX JIT-compiles. The enhanced runner uses the CUDA Driver linker to obtain the **exact CUBIN**, saves it, runs NVIDIA `nvdisasm`, and checks the resulting Tensor Core SASS family, shape, accumulator type, A/B formats, and static MMA instruction count. Only a case that passes this audit is timed and reported as `PASS`.
+
+The expected SM120 structural mapping is:
+
+| PTX family | Expected SASS family |
+|---|---|
+| dense FP8 / `f8f6f4` | `QMMA` |
+| dense `mxf8f6f4` | `QMMA.SF` |
+| dense `mxf4` / `mxf4nvf4` | `OMMA.SF` |
+| sparse FP8 / `f8f6f4` | `QMMA.SP` |
+| sparse `mxf8f6f4` | `QMMA.SF.SP` |
+| sparse `mxf4` / `mxf4nvf4` | `OMMA.SF.SP` |
+
+NVIDIA documents CUBIN generation through `cuLinkComplete` and both human-readable and JSON output from `nvdisasm`; NVIDIA does not publish PTX-like normative semantics for SM120 SASS names, so the SASS mapping is an audit expectation and all complete SASS artifacts are retained for inspection.
+
+- Driver linker: https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MODULE.html
+- nvdisasm: https://docs.nvidia.com/cuda/cuda-binary-utilities/
+- Detailed audit policy: `docs/output-and-sass.md`
+
+`--no-sass-check` is an explicit opt-out. With the default policy, missing `nvdisasm` or a SASS mismatch prevents the affected documented case from executing and makes the run exit non-zero after preserving partial reports.
+
 ## Peak-FLOPS methodology
 
 A dense `m16n8kK` warp MMA is counted as `2 * 16 * 8 * K` FLOPs. Sparse results report both `peak_logical_tflops = 2*M*N*K` and `peak_nonzero_tflops = logical/2`, separating dense-equivalent sparse throughput from nonzero multiply-add work.
 
-Each chain starts from a different accumulator seed so equivalent MMA chains cannot legally be collapsed into one common subexpression. The loop issues `chains × 4` MMAs per iteration before branching; by default that is 32 MMA instructions per warp per loop iteration. The kernel is warmed up, timed 5 times with CUDA device events, and reports both the best (peak) and mean throughput. A/B, accumulator, sparse metadata, and scale metadata remain register-resident throughout the repeated body.
-
-The input byte patterns obey the required FP6/FP4 padding rules. Ordered sparse metadata uses `0x44444444`; scale bytes use `0x38`, avoiding the reserved UE8M0 (`0xff`) and UE4M3 (`0x7f`) NaN encodings.
+Each chain starts from a different accumulator seed so equivalent MMA chains cannot legally be collapsed into one common subexpression. The loop issues `chains × 4` MMAs per iteration before branching; by default that is 32 MMA instructions per warp per loop iteration. The SASS gate verifies that this expected static MMA count survives compilation. The kernel is warmed up, timed 5 times with CUDA device events, and reports both the best (peak) and mean throughput.
 
 RTX 5090 and RTX PRO 6000 share the SM120 PTX capability class but can produce different device-level peaks due to SM count, clocks, power limits, and thermal behavior.
 
+## Human-readable and machine-readable output
+
+Every normal run is persisted under `results/<timestamp>_<device>/` unless `--output-dir` is given. Important files are:
+
+```text
+summary.md          human-readable headline report
+cases.log           detailed human-readable case log
+run.json            complete machine-readable run
+results.csv         flat machine-readable case table
+peak_summary.json   machine-readable headline Peak table
+ptx/                exact generated PTX
+cubin/              exact linked CUBINs
+sass/               nvdisasm text + native JSON + logs
+```
+
+The headline summary extracts the dense Peak result for **FP8, FP6, FP4, FP8×FP6, FP8×FP4, and FP6×FP4**, each **without MX** and **with MX**. Mixed categories search both A×B orientations and all documented subformats; the winning exact formats/orientation/accumulator/PTX/SASS are preserved. `mxf4nvf4` is reported separately as an **NVFP4 reference** rather than incorrectly folded into MX.
+
+See `docs/output-and-sass.md` for the output schema and selection rules.
+
 ## Build / run
 
-Requires a CUDA toolkit/driver capable of JIT-compiling PTX 9.1 for SM120.
+Requires a CUDA toolkit/driver capable of JIT-compiling PTX 9.1 for SM120 and, by default, a sufficiently new `nvdisasm`.
 
 ```bash
 cmake -S . -B build
@@ -117,9 +157,13 @@ Options:
 --include-probes          also JIT-probe DOC_AMBIGUOUS / UNDOCUMENTED cases
 --probes-only             JIT-probe only non-documented cases
 --list                    list the selected manifest without CUDA initialization
---verbose-jit             print CUDA JIT logs
+--output-dir DIR          explicit run output directory
+--nvdisasm PATH           nvdisasm executable/path (default: nvdisasm)
+--no-sass-check           explicitly disable the default SASS execution gate
+--quiet-cases             suppress per-case terminal lines; files are still complete
+--verbose-jit             print CUDA JIT diagnostics
 ```
 
-Result tags include `PASS`, `FAIL_DOCUMENTED`, `ACCEPTED_DOC_AMBIGUOUS`, `REJECTED_DOC_AMBIGUOUS`, `ACCEPTED_UNDOCUMENTED`, and `REJECTED_UNDOCUMENTED`.
+Result tags include `PASS`, `FAIL_DOCUMENTED`, `SASS_OK`, `SASS_MISMATCH`, `SASS_TOOL_ERROR`, `ACCEPTED_DOC_AMBIGUOUS`, `REJECTED_DOC_AMBIGUOUS`, `ACCEPTED_UNDOCUMENTED`, and `REJECTED_UNDOCUMENTED`.
 
-See `docs/ptx-coverage.md` for the classification audit. The repository was created by static inspection only: **no local command, compiler invocation, CUDA JIT, RTX 5090 benchmark, or RTX PRO 6000 benchmark was run while creating it**.
+See `docs/ptx-coverage.md` for the PTX classification audit and `docs/output-and-sass.md` for output/SASS methodology. Repository changes were made by static inspection only: **no local build, compiler invocation, CUDA JIT, RTX 5090 benchmark, or RTX PRO 6000 benchmark was run while editing the repository**.
