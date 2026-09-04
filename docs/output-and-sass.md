@@ -1,4 +1,4 @@
-# Output, headline peaks, and SASS verification
+# Output, headline peaks, and SASS audit
 
 The benchmark treats reproducibility as part of the measurement. A normal run writes both human-readable and machine-readable results and preserves the PTX -> CUBIN -> SASS trail for every selected case.
 
@@ -19,7 +19,7 @@ run.json               complete machine-readable run record
 results.csv            flat machine-readable per-case table
 peak_summary.json      machine-readable headline Peak FP8/FP6/FP4 table
 ptx/*.ptx              exact generated PTX for each selected case
-cubin/*.cubin          exact Driver-JIT-linked cubin used for SASS audit/timing
+cubin/*.cubin          exact Driver-JIT-linked cubin used for audit/timing
 sass/*.sass.txt        nvdisasm human-readable SASS
 sass/*.sass.json       nvdisasm native JSON SASS output
 sass/*.nvdisasm.log    disassembler diagnostics
@@ -48,31 +48,55 @@ Each is reported in two modes:
 - `without_mx`: documented dense unscaled PTX (`legacy FP8` and/or `kind::f8f6f4` as applicable);
 - `with_mx`: documented dense MX PTX (`kind::mxf8f6f4` and `kind::mxf4`).
 
-For mixed-width categories, both operand orientations are eligible. For example, `FP8 x FP4` searches both FP8(A) x FP4(B) and FP4(A) x FP8(B), all documented format subtypes, and all documented accumulator choices. The highest measured result wins, while `peak_summary.json` preserves the exact A/B formats, orientation, accumulator type, PTX case, and SASS family of the winner.
+For mixed-width categories, both operand orientations are eligible. `FP8 x FP4`, for example, searches both FP8(A) x FP4(B) and FP4(A) x FP8(B), all documented format subtypes, and all documented accumulator choices. The highest measured result wins.
 
 `mxf4nvf4` is intentionally **not** folded into `with_mx`: NVFP4 and MXFP4 are different scaling formats. The best documented `mxf4nvf4` FP4 result is emitted separately as `nvfp4_reference`.
 
-## SASS is a default execution gate
+## SASS audit is observational
 
-By default, a documented PTX case is **not timed immediately after JIT compilation**. The runner first:
+SASS auditing is enabled by default, but it is **not an execution gate** and **not a Peak-selection gate**.
+
+For every documented PTX case, the runner:
 
 1. compiles/links the generated PTX with the CUDA Driver API;
 2. obtains the resulting CUBIN from `cuLinkComplete`;
 3. writes that exact CUBIN to disk;
-4. disassembles it using NVIDIA `nvdisasm` in both text and JSON forms;
-5. checks that the resulting SASS has the expected Tensor Core family, MMA shape, accumulator type, A/B data formats, and static Tensor Core MMA instruction count;
-6. only then launches and times the kernel.
+4. attempts to disassemble it using NVIDIA `nvdisasm` in both text and JSON forms;
+5. compares the resulting SASS with the expected Tensor Core structural mapping;
+6. records the SASS result;
+7. executes and times the documented case regardless of whether the SASS matched the expectation.
 
-Therefore, with the default policy, a `PASS` result has already passed its SASS structural audit. If the SASS does not match, the case is recorded as `SASS_MISMATCH` and is **not executed**. If `nvdisasm` is unavailable, cases are recorded as `SASS_TOOL_ERROR` and are not executed; the run still writes partial reports and exits non-zero. `--no-sass-check` is an explicit opt-out and is recorded in `run.json` / `peak_summary.json`.
+The important statuses are:
 
-NVIDIA documents that `cuLinkComplete` returns the cubin image produced by a Driver API link and that the image can be loaded directly with `cuModuleLoadData`. NVIDIA also documents `nvdisasm` support for standalone cubins, `-c` code-only output, and native `-json` disassembly. These are the mechanisms used here:
+- `SASS_OK`: observed SASS matches the current structural expectation;
+- `SASS_MISMATCH`: disassembly succeeded but one or more expected structural properties did not match;
+- `SASS_TOOL_ERROR`: `nvdisasm` was unavailable;
+- `SASS_DISASM_ERROR`: `nvdisasm` failed on that CUBIN;
+- `SASS_DISABLED`: audit explicitly disabled with `--no-sass-check`.
 
-- https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MODULE.html
-- https://docs.nvidia.com/cuda/cuda-binary-utilities/
+All of these are **audit metadata**. They do not replace the benchmark status. A documented case that JIT-compiles and executes successfully is reported as `PASS` even when its SASS status is `SASS_MISMATCH`, `SASS_TOOL_ERROR`, or `SASS_DISASM_ERROR`.
+
+The machine-readable output makes this explicit:
+
+```text
+run.json:
+  sass.audit_enabled
+  sass.gates_execution = false
+  cases[i].sass.status
+  cases[i].sass.matches_expected = true | false | null
+
+peak_summary.json:
+  sass_audit_enabled
+  sass_gates_peak_selection = false
+  headline[i].sass_status
+  headline[i].sass_matches_expected
+```
+
+Thus a headline Peak always represents the fastest successful documented benchmark case in that category, independent of SASS expectation matching; the SASS audit result is attached to the winning measurement so a reviewer can immediately see whether the PTX -> SASS lowering matched the current expectation.
 
 ## Expected SM120 SASS families
 
-NVIDIA does not publish a normative SM120 SASS ISA specification equivalent to PTX, so the SASS names below are treated as an **audit expectation**, not as the source of truth for PTX legality. They are cross-checked against `nvdisasm` observations from current SM120 work and should be revisited if NVIDIA changes disassembler spelling.
+NVIDIA does not publish a normative SM120 SASS ISA specification equivalent to PTX, so these names are treated as **audit expectations**, not as the source of truth for PTX legality.
 
 | PTX path | Expected SASS structural family |
 |---|---|
@@ -83,15 +107,15 @@ NVIDIA does not publish a normative SM120 SASS ISA specification equivalent to P
 | sparse `mxf8f6f4` | `QMMA.SF.SP.16864...` |
 | sparse `mxf4` / `mxf4nvf4` | `OMMA.SF.SP.168128...` |
 
-Empirical SM120 references that expose the same `nvdisasm` family names include:
+The automated audit currently checks family (`QMMA` vs `OMMA`, plus `SF` / `SP` modifiers), shape, accumulator type, A/B element format, and static Tensor Core MMA count. The complete SASS text and NVIDIA JSON disassembly are always preserved when available so lower-level scale/control details can be audited separately.
 
-- https://github.com/florianmattana/sass-king/blob/main/corpus/tensor_cores/README.md
-- https://zartbot.github.io/micro_arch/nvidia/sm_120/04_tensorcore_architecture.html
+## Why record the static MMA count
 
-The current automated gate checks the SASS family (`QMMA` vs `OMMA`, plus `SF` / `SP` modifiers), shape, accumulator type, A/B element format, and exact static Tensor Core MMA count. The complete SASS text/JSON is always preserved so scale-mode/control-code details can be audited independently; this avoids pretending that reverse-engineered SASS modifier semantics are part of NVIDIA's public PTX contract.
+The hot PTX body contains `chains x inner_unroll` MMA instructions. Each accumulator chain begins from a different C value and remains observable after the loop, reducing the opportunity for legal common-subexpression elimination.
 
-## Why the static MMA count is checked
+The SASS audit records whether the expected number and class of Tensor Core MMA instructions survived lowering. A mismatch is useful diagnostic evidence, but it does not suppress the actual measured throughput; this is important because the SASS expectation itself is not a normative NVIDIA contract.
 
-The hot PTX body contains `chains x inner_unroll` MMA instructions. Each accumulator chain begins from a different C value and remains observable after the loop, preventing legal common-subexpression elimination from collapsing identical chains. The SASS gate then verifies that exactly the expected number of Tensor Core MMA instructions remains in the compiled kernel and that none has been replaced by another Tensor Core family.
+NVIDIA references for the CUBIN/disassembly mechanisms:
 
-This is important for a peak-throughput microbenchmark: measuring elapsed time is insufficient if the compiler silently changes the number or class of operations being timed.
+- https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MODULE.html
+- https://docs.nvidia.com/cuda/cuda-binary-utilities/
