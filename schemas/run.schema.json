@@ -5,7 +5,7 @@
   "type": "object",
   "required": ["schema_version", "timestamp_utc", "device", "ptx", "sass", "benchmark", "cases"],
   "properties": {
-    "schema_version": {"const": 1},
+    "schema_version": {"const": 2},
     "timestamp_utc": {"type": "string"},
     "device": {
       "type": "object",
@@ -30,9 +30,10 @@
     },
     "sass": {
       "type": "object",
-      "required": ["required", "tool", "tool_ok"],
+      "required": ["audit_enabled", "gates_execution", "tool", "tool_ok"],
       "properties": {
-        "required": {"type": "boolean"},
+        "audit_enabled": {"type": "boolean"},
+        "gates_execution": {"const": false},
         "tool": {"type": "string"},
         "tool_ok": {"type": "boolean"}
       },
@@ -85,9 +86,10 @@
         "regs_per_thread": {"type": "integer", "minimum": 0},
         "sass": {
           "type": "object",
-          "required": ["status", "family", "expectation", "expected_mma_count", "matched_mma_count", "total_tensor_mma_count", "text_path", "json_path"],
+          "required": ["status", "matches_expected", "family", "expectation", "expected_mma_count", "matched_mma_count", "total_tensor_mma_count", "text_path", "json_path"],
           "properties": {
             "status": {"type": "string"},
+            "matches_expected": {"type": ["boolean", "null"]},
             "family": {"type": "string"},
             "expectation": {"type": "string"},
             "expected_mma_count": {"type": "integer", "minimum": 0},
