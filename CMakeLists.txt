@@ -16,3 +16,13 @@ target_link_libraries(tensorcore-fp864-bench PRIVATE CUDA::cuda_driver)
 target_compile_options(tensorcore-fp864-bench PRIVATE
     $<$<CXX_COMPILER_ID:GNU,Clang>:-O2 -Wall -Wextra -Wpedantic>
 )
+
+add_executable(tensorcore-fp864x-fp664-bench
+    src/fp864xfp664.cpp
+)
+
+target_link_libraries(tensorcore-fp864x-fp664-bench PRIVATE CUDA::cuda_driver)
+
+target_compile_options(tensorcore-fp864x-fp664-bench PRIVATE
+    $<$<CXX_COMPILER_ID:GNU,Clang>:-O2 -Wall -Wextra -Wpedantic>
+)
