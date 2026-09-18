@@ -145,14 +145,17 @@ For a smaller dense-only smoke/performance suite, run:
 ./build/tensorcore-fp864x-fp664-bench
 ```
 
-The curated 19-case suite uses PTX 9.0-compatible cases only, prints a final family peak table, and writes:
+The curated 19-case suite uses PTX 9.0-compatible cases only, prints a final family peak table, and writes a full diagnostic bundle:
 
 ```text
 results/<UTC timestamp>_<GPU>_fp864x_fp664/
+  run_info.txt
   cases.log
   result.json
+  system/*
+  artifacts/<case>/{case.txt,generated.ptx,inline_ptx_repro.cu,jit_error.log,jit_info.log}
 ```
 
-Its `result.json` is the complete machine-readable curated result. See `docs/fp864xfp664.md` for the exact allowlist and output semantics.
+The run log contains full generated PTX and CUDA JIT error/info logs. The per-case CUDA reproduction uses inline PTX so a failing instruction can be compiled independently with NVCC. `result.json` is the machine-readable curated result. See `docs/fp864xfp664.md` for the exact allowlist and output semantics.
 
 See `docs/ptx-coverage.md` for PTX classification and `docs/output-and-sass.md` for full-suite output/SASS semantics.
