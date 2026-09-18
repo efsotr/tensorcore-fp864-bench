@@ -136,6 +136,14 @@ std::string tcgen05_sm120_probe() {
 })PTX";
 }
 
+const char* ptx_version_for_case(const Case& c) {
+  if (c.name.find("/mxf4nvf4/") != std::string::npos &&
+      c.name.find("/ue8m0-4X") != std::string::npos) {
+    return "9.1";
+  }
+  return "9.0";
+}
+
 std::string build_ptx(const Case& c, unsigned chains) {
   if (c.custom_ptx) return c.custom_source;
 
@@ -148,7 +156,7 @@ std::string build_ptx(const Case& c, unsigned chains) {
       "0x45004500", "0x46004600", "0x47004700", "0x48004800"};
 
   std::ostringstream p;
-  p << ".version 9.1\n"
+  p << ".version " << ptx_version_for_case(c) << "\n"
     << ".target sm_120a\n"
     << ".address_size 64\n\n"
     << ".visible .entry bench(.param .u64 out_ptr, .param .u32 iters) {\n"
