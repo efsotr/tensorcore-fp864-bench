@@ -8,7 +8,7 @@ The hot loop repeatedly issues one PTX MMA spelling with register-resident opera
 
 For RTX 5090 / RTX PRO 6000, the relevant public low-precision PTX interface is warp-level `mma.sync` and sparse `mma.sp{::ordered_metadata}.sync`. NVIDIA's family-specific PTX feature table exposes `tcgen05.mma` to the SM100/SM110 family, while the FP6/FP4 `.e3m2`, `.e2m3`, `.e2m1`, `.kind`, `.block_scale`, and `.scale_vec` extensions of warp-level `mma{.sp}` are exposed to SM120.
 
-Generated PTX uses `.version 9.1` + `.target sm_120a`, covering the documented `mxf4nvf4 + ue8m0 + scale_vec::4X` form introduced in PTX ISA 9.1.
+Generated PTX uses the minimum required PTX ISA per case: `.version 9.0` for the CUDA 13.0-compatible cases, and `.version 9.1` only for `mxf4nvf4 + ue8m0 + scale_vec::4X`, which was introduced in PTX ISA 9.1.
 
 Primary references:
 
@@ -145,7 +145,7 @@ For a smaller dense-only smoke/performance suite, run:
 ./build/tensorcore-fp864x-fp664-bench
 ```
 
-The curated 20-case suite prints a final family peak table and writes:
+The curated 19-case suite uses PTX 9.0-compatible cases only, prints a final family peak table, and writes:
 
 ```text
 results/<UTC timestamp>_<GPU>_fp864x_fp664/
