@@ -51,7 +51,7 @@ Each normal run writes:
 ```text
 results/<UTC timestamp>_<GPU>/
   summary.md
-  cases.log
+  full.log
   run.json
   results.csv
   peak_summary.json
@@ -150,7 +150,7 @@ The curated 19-case suite uses PTX 9.0-compatible cases only, prints a final fam
 ```text
 results/<UTC timestamp>_<GPU>_fp864x_fp664/
   run_info.txt
-  cases.log
+  full.log
   result.json
   system/*
   artifacts/<case>/{case.txt,generated.ptx,inline_ptx_repro.cu,jit_error.log,jit_info.log}
