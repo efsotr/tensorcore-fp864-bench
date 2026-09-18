@@ -563,6 +563,8 @@ Options parse_args(int argc, char** argv) {
 struct LoadedModule {
   CUmodule module = nullptr;
   CUfunction function = nullptr;
+  std::string error_log;
+  std::string info_log;
   std::string log;
 };
 
@@ -585,7 +587,10 @@ CUresult load_ptx(const std::string& ptx, LoadedModule& out) {
       reinterpret_cast<void*>(static_cast<uintptr_t>(4))};
 
   CUresult r = cuModuleLoadDataEx(&out.module, ptx.c_str(), 6, options, values);
-  out.log = std::string(error_log) + std::string(info_log);
+  out.error_log = error_log;
+  out.info_log = info_log;
+  out.log = "=== CUDA JIT ERROR LOG ===\n" + out.error_log +
+            "\n=== CUDA JIT INFO LOG ===\n" + out.info_log;
   if (r != CUDA_SUCCESS) return r;
 
   r = cuModuleGetFunction(&out.function, out.module, "bench");
@@ -639,7 +644,7 @@ int main(int argc, char** argv) {
               << " sm_count=" << sms
               << " reported_clock_mhz=" << (clock_khz / 1000.0)
               << " driver_api=" << driver_version
-              << " ptx=9.1 target=sm_120a"
+              << " ptx=per-case(9.0,9.1) target=sm_120a"
               << " inner_unroll=" << kInnerUnroll << "\n";
 
     if (major != 12 || minor != 0) {
