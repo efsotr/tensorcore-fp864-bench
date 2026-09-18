@@ -288,45 +288,45 @@ std::vector<Case> base_manifest() {
     const bool h = d == "f16";
     v.push_back(make_case(
         "dense/f8f6f4/" + a + "x" + b + "/acc-" + d,
-        "mma.sync.aligned.m16n8k32.row.col.kind::f8f6f4." + d + "." + a + "." + b + "." + d,
+        "mma.sync.aligned.kind::f8f6f4.m16n8k32.row.col." + d + "." + a + "." + b + "." + d,
         32, 4, 2, h));
   }
 
-  // Dense MXF8/F6/F4: explicit 1X and documented omitted-default spelling.
+  // Dense MXF8/F6/F4: NVIDIA CUTLASS canonical SM120 spelling.
   for (const auto& a : f864) for (const auto& b : f864) {
-    const std::string prefix = "mma.sync.aligned.m16n8k32.row.col.kind::mxf8f6f4.block_scale";
+    const std::string prefix = "mma.sync.aligned.kind::mxf8f6f4.block_scale";
     v.push_back(make_case(
         "dense/mxf8f6f4/" + a + "x" + b + "/ue8m0-1X",
-        prefix + ".scale_vec::1X.f32." + a + "." + b + ".f32.ue8m0",
+        prefix + ".scale_vec::1X.m16n8k32.row.col.f32." + a + "." + b + ".f32.ue8m0",
         32, 4, 2, false, false, 1));
     v.push_back(make_case(
         "dense/mxf8f6f4/" + a + "x" + b + "/ue8m0-default-1X",
-        prefix + ".f32." + a + "." + b + ".f32.ue8m0",
+        prefix + ".m16n8k32.row.col.f32." + a + "." + b + ".f32.ue8m0",
         32, 4, 2, false, false, 1));
   }
 
   // Dense MXF4: explicit 2X and documented omitted-default spelling.
   v.push_back(make_case(
       "dense/mxf4/e2m1xe2m1/ue8m0-2X",
-      "mma.sync.aligned.m16n8k64.row.col.kind::mxf4.block_scale.scale_vec::2X.f32.e2m1.e2m1.f32.ue8m0",
+      "mma.sync.aligned.kind::mxf4.block_scale.scale_vec::2X.m16n8k64.row.col.f32.e2m1.e2m1.f32.ue8m0",
       64, 4, 2, false, false, 2));
   v.push_back(make_case(
       "dense/mxf4/e2m1xe2m1/ue8m0-default-2X",
-      "mma.sync.aligned.m16n8k64.row.col.kind::mxf4.block_scale.f32.e2m1.e2m1.f32.ue8m0",
+      "mma.sync.aligned.kind::mxf4.block_scale.m16n8k64.row.col.f32.e2m1.e2m1.f32.ue8m0",
       64, 4, 2, false, false, 2));
 
   // Dense MXF4NVF4 valid rows of the PTX block-scaling table.
   v.push_back(make_case(
       "dense/mxf4nvf4/e2m1xe2m1/ue8m0-2X",
-      "mma.sync.aligned.m16n8k64.row.col.kind::mxf4nvf4.block_scale.scale_vec::2X.f32.e2m1.e2m1.f32.ue8m0",
+      "mma.sync.aligned.kind::mxf4nvf4.block_scale.scale_vec::2X.m16n8k64.row.col.f32.e2m1.e2m1.f32.ue8m0",
       64, 4, 2, false, false, 2));
   v.push_back(make_case(
       "dense/mxf4nvf4/e2m1xe2m1/ue8m0-4X",
-      "mma.sync.aligned.m16n8k64.row.col.kind::mxf4nvf4.block_scale.scale_vec::4X.f32.e2m1.e2m1.f32.ue8m0",
+      "mma.sync.aligned.kind::mxf4nvf4.block_scale.scale_vec::4X.m16n8k64.row.col.f32.e2m1.e2m1.f32.ue8m0",
       64, 4, 2, false, false, 4));
   v.push_back(make_case(
       "dense/mxf4nvf4/e2m1xe2m1/ue4m3-4X",
-      "mma.sync.aligned.m16n8k64.row.col.kind::mxf4nvf4.block_scale.scale_vec::4X.f32.e2m1.e2m1.f32.ue4m3",
+      "mma.sync.aligned.kind::mxf4nvf4.block_scale.scale_vec::4X.m16n8k64.row.col.f32.e2m1.e2m1.f32.ue4m3",
       64, 4, 2, false, false, 4));
 
   // Normative legacy sparse FP8 syntax: m16n8k64, F32, both metadata variants.
@@ -359,42 +359,42 @@ std::vector<Case> base_manifest() {
     const bool h = d == "f16";
     v.push_back(make_case(
         "sparse/f8f6f4/sp::ordered_metadata/" + a + "x" + b + "/acc-" + d,
-        "mma.sp::ordered_metadata.sync.aligned.m16n8k64.row.col.kind::f8f6f4." + d + "." + a + "." + b + "." + d,
+        "mma.sync.aligned.kind::f8f6f4.sp::ordered_metadata.m16n8k64.row.col." + d + "." + a + "." + b + "." + d,
         64, 4, 4, h, true));
   }
 
-  // Sparse block scaling is normatively ordered-metadata-only.
+  // Sparse block scaling: NVIDIA CUTLASS canonical SM120 spelling.
   for (const auto& a : f864) for (const auto& b : f864) {
-    const std::string prefix = "mma.sp::ordered_metadata.sync.aligned.m16n8k64.row.col.kind::mxf8f6f4.block_scale";
+    const std::string prefix = "mma.sync.aligned.kind::mxf8f6f4.sp::ordered_metadata.block_scale";
     v.push_back(make_case(
         "sparse/mxf8f6f4/" + a + "x" + b + "/ue8m0-1X",
-        prefix + ".scale_vec::1X.f32." + a + "." + b + ".f32.ue8m0",
+        prefix + ".scale_vec::1X.m16n8k64.row.col.f32." + a + "." + b + ".f32.ue8m0",
         64, 4, 4, false, true, 1));
     v.push_back(make_case(
         "sparse/mxf8f6f4/" + a + "x" + b + "/ue8m0-default-1X",
-        prefix + ".f32." + a + "." + b + ".f32.ue8m0",
+        prefix + ".m16n8k64.row.col.f32." + a + "." + b + ".f32.ue8m0",
         64, 4, 4, false, true, 1));
   }
 
   v.push_back(make_case(
       "sparse/mxf4/e2m1xe2m1/ue8m0-2X",
-      "mma.sp::ordered_metadata.sync.aligned.m16n8k128.row.col.kind::mxf4.block_scale.scale_vec::2X.f32.e2m1.e2m1.f32.ue8m0",
+      "mma.sync.aligned.kind::mxf4.sp::ordered_metadata.block_scale.scale_vec::2X.m16n8k128.row.col.f32.e2m1.e2m1.f32.ue8m0",
       128, 4, 4, false, true, 2));
   v.push_back(make_case(
       "sparse/mxf4/e2m1xe2m1/ue8m0-default-2X",
-      "mma.sp::ordered_metadata.sync.aligned.m16n8k128.row.col.kind::mxf4.block_scale.f32.e2m1.e2m1.f32.ue8m0",
+      "mma.sync.aligned.kind::mxf4.sp::ordered_metadata.block_scale.m16n8k128.row.col.f32.e2m1.e2m1.f32.ue8m0",
       128, 4, 4, false, true, 2));
   v.push_back(make_case(
       "sparse/mxf4nvf4/e2m1xe2m1/ue8m0-2X",
-      "mma.sp::ordered_metadata.sync.aligned.m16n8k128.row.col.kind::mxf4nvf4.block_scale.scale_vec::2X.f32.e2m1.e2m1.f32.ue8m0",
+      "mma.sync.aligned.kind::mxf4nvf4.sp::ordered_metadata.block_scale.scale_vec::2X.m16n8k128.row.col.f32.e2m1.e2m1.f32.ue8m0",
       128, 4, 4, false, true, 2));
   v.push_back(make_case(
       "sparse/mxf4nvf4/e2m1xe2m1/ue8m0-4X",
-      "mma.sp::ordered_metadata.sync.aligned.m16n8k128.row.col.kind::mxf4nvf4.block_scale.scale_vec::4X.f32.e2m1.e2m1.f32.ue8m0",
+      "mma.sync.aligned.kind::mxf4nvf4.sp::ordered_metadata.block_scale.scale_vec::4X.m16n8k128.row.col.f32.e2m1.e2m1.f32.ue8m0",
       128, 4, 4, false, true, 4));
   v.push_back(make_case(
       "sparse/mxf4nvf4/e2m1xe2m1/ue4m3-4X",
-      "mma.sp::ordered_metadata.sync.aligned.m16n8k128.row.col.kind::mxf4nvf4.block_scale.scale_vec::4X.f32.e2m1.e2m1.f32.ue4m3",
+      "mma.sync.aligned.kind::mxf4nvf4.sp::ordered_metadata.block_scale.scale_vec::4X.m16n8k128.row.col.f32.e2m1.e2m1.f32.ue4m3",
       128, 4, 4, false, true, 4));
 
   // ---- Plausible but not normatively defined ----
@@ -409,7 +409,7 @@ std::vector<Case> base_manifest() {
   for (int k : {16, 64}) {
     v.push_back(make_case(
         "probe/undocumented/dense-f8f6f4-k" + std::to_string(k),
-        "mma.sync.aligned.m16n8k" + std::to_string(k) + ".row.col.kind::f8f6f4.f32.e3m2.e2m3.f32",
+        "mma.sync.aligned.kind::f8f6f4.m16n8k" + std::to_string(k) + ".row.col.f32.e3m2.e2m3.f32",
         k, k == 16 ? 2 : 8, k == 16 ? 1 : 4, false, false, 0, DocClass::Undocumented,
         "dense kind::f8f6f4 grammar is fixed to m16n8k32"));
   }
@@ -425,48 +425,48 @@ std::vector<Case> base_manifest() {
 
   v.push_back(make_case(
       "probe/undocumented/mxf8f6f4-ue8m0-2X",
-      "mma.sync.aligned.m16n8k32.row.col.kind::mxf8f6f4.block_scale.scale_vec::2X.f32.e4m3.e4m3.f32.ue8m0",
+      "mma.sync.aligned.kind::mxf8f6f4.block_scale.scale_vec::2X.m16n8k32.row.col.f32.e4m3.e4m3.f32.ue8m0",
       32, 4, 2, false, false, 2, DocClass::Undocumented, "valid-combination table fixes mxf8f6f4 to 1X"));
   v.push_back(make_case(
       "probe/undocumented/mxf8f6f4-ue4m3-1X",
-      "mma.sync.aligned.m16n8k32.row.col.kind::mxf8f6f4.block_scale.scale_vec::1X.f32.e4m3.e4m3.f32.ue4m3",
+      "mma.sync.aligned.kind::mxf8f6f4.block_scale.scale_vec::1X.m16n8k32.row.col.f32.e4m3.e4m3.f32.ue4m3",
       32, 4, 2, false, false, 1, DocClass::Undocumented, "valid-combination table fixes mxf8f6f4 scale type to ue8m0"));
   v.push_back(make_case(
       "probe/undocumented/mxf4-ue8m0-1X",
-      "mma.sync.aligned.m16n8k64.row.col.kind::mxf4.block_scale.scale_vec::1X.f32.e2m1.e2m1.f32.ue8m0",
+      "mma.sync.aligned.kind::mxf4.block_scale.scale_vec::1X.m16n8k64.row.col.f32.e2m1.e2m1.f32.ue8m0",
       64, 4, 2, false, false, 1, DocClass::Undocumented, "valid-combination table fixes mxf4 to 2X"));
   v.push_back(make_case(
       "probe/undocumented/mxf4-ue4m3-2X",
-      "mma.sync.aligned.m16n8k64.row.col.kind::mxf4.block_scale.scale_vec::2X.f32.e2m1.e2m1.f32.ue4m3",
+      "mma.sync.aligned.kind::mxf4.block_scale.scale_vec::2X.m16n8k64.row.col.f32.e2m1.e2m1.f32.ue4m3",
       64, 4, 2, false, false, 2, DocClass::Undocumented, "ue4m3 scale is not defined for mxf4"));
   v.push_back(make_case(
       "probe/undocumented/mxf4nvf4-ue4m3-2X",
-      "mma.sync.aligned.m16n8k64.row.col.kind::mxf4nvf4.block_scale.scale_vec::2X.f32.e2m1.e2m1.f32.ue4m3",
+      "mma.sync.aligned.kind::mxf4nvf4.block_scale.scale_vec::2X.m16n8k64.row.col.f32.e2m1.e2m1.f32.ue4m3",
       64, 4, 2, false, false, 2, DocClass::Undocumented, "ue4m3 is paired only with 4X for mxf4nvf4"));
   v.push_back(make_case(
       "probe/undocumented/mxf4nvf4-missing-scale-vec",
-      "mma.sync.aligned.m16n8k64.row.col.kind::mxf4nvf4.block_scale.f32.e2m1.e2m1.f32.ue8m0",
+      "mma.sync.aligned.kind::mxf4nvf4.block_scale.m16n8k64.row.col.f32.e2m1.e2m1.f32.ue8m0",
       64, 4, 2, false, false, 2, DocClass::Undocumented, "scale_vec is mandatory for mxf4nvf4"));
   v.push_back(make_case(
       "probe/undocumented/block-scale-f16-acc",
-      "mma.sync.aligned.m16n8k32.row.col.kind::mxf8f6f4.block_scale.scale_vec::1X.f16.e4m3.e4m3.f16.ue8m0",
+      "mma.sync.aligned.kind::mxf8f6f4.block_scale.scale_vec::1X.m16n8k32.row.col.f16.e4m3.e4m3.f16.ue8m0",
       32, 4, 2, true, false, 1, DocClass::Undocumented, "block-scaled grammar fixes C/D to f32"));
 
   v.push_back(make_case(
       "probe/undocumented/sparse-f8f6f4-plain-sp",
-      "mma.sp.sync.aligned.m16n8k64.row.col.kind::f8f6f4.f32.e3m2.e2m3.f32",
+      "mma.sync.aligned.kind::f8f6f4.sp.m16n8k64.row.col.f32.e3m2.e2m3.f32",
       64, 4, 4, false, true, 0, DocClass::Undocumented, "kind::f8f6f4 sparse grammar is ordered-metadata-only"));
   v.push_back(make_case(
       "probe/undocumented/sparse-mxf8f6f4-plain-sp",
-      "mma.sp.sync.aligned.m16n8k64.row.col.kind::mxf8f6f4.block_scale.scale_vec::1X.f32.e4m3.e4m3.f32.ue8m0",
+      "mma.sync.aligned.kind::mxf8f6f4.sp.block_scale.scale_vec::1X.m16n8k64.row.col.f32.e4m3.e4m3.f32.ue8m0",
       64, 4, 4, false, true, 1, DocClass::Undocumented, "block-scaled sparse grammar is ordered-metadata-only"));
   v.push_back(make_case(
       "probe/undocumented/sparse-mxf4-plain-sp",
-      "mma.sp.sync.aligned.m16n8k128.row.col.kind::mxf4.block_scale.scale_vec::2X.f32.e2m1.e2m1.f32.ue8m0",
+      "mma.sync.aligned.kind::mxf4.sp.block_scale.scale_vec::2X.m16n8k128.row.col.f32.e2m1.e2m1.f32.ue8m0",
       128, 4, 4, false, true, 2, DocClass::Undocumented, "block-scaled sparse grammar is ordered-metadata-only"));
   v.push_back(make_case(
       "probe/undocumented/f8f6f4-row-row",
-      "mma.sync.aligned.m16n8k32.row.row.kind::f8f6f4.f32.e4m3.e4m3.f32",
+      "mma.sync.aligned.kind::f8f6f4.m16n8k32.row.row.f32.e4m3.e4m3.f32",
       32, 4, 2, false, false, 0, DocClass::Undocumented, "low-precision warp-MMA grammar is fixed to row.col"));
 
   return v;
