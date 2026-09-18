@@ -66,6 +66,13 @@ struct CuratedResult {
   std::string name;
   std::string opcode;
   std::string error;
+  std::string ptx_version;
+  std::string ptx_path;
+  std::string cuda_repro_path;
+  std::string jit_error_log_path;
+  std::string jit_info_log_path;
+  std::string jit_error_log;
+  std::string jit_info_log;
   double best_ms = 0.0;
   double mean_ms = 0.0;
   double peak_logical_tflops = 0.0;
@@ -120,6 +127,138 @@ std::string slug(std::string s) {
   while (s.find("__") != std::string::npos) s.replace(s.find("__"), 2, "_");
   if (s.size() > 150) s.resize(150);
   return s;
+}
+
+std::string quote_arg(const std::string& s) {
+  std::ostringstream out;
+  out << '"';
+  for (char ch : s) {
+    if (ch == '\\' || ch == '"') out << '\\';
+    out << ch;
+  }
+  out << '"';
+  return out.str();
+}
+
+std::string command_line_string(int argc, char** argv) {
+  std::ostringstream out;
+  for (int i = 0; i < argc; ++i) {
+    if (i) out << ' ';
+    out << quote_arg(argv[i]);
+  }
+  return out.str();
+}
+
+std::string env_value(const char* name) {
+  const char* v = std::getenv(name);
+  return v ? v : "<unset>";
+}
+
+void write_text_file(const fs::path& path, const std::string& text) {
+  std::ofstream out(path, std::ios::binary);
+  if (!out) throw std::runtime_error("cannot write " + path.string());
+  out << text;
+}
+
+std::string double_percent(std::string s) {
+  size_t pos = 0;
+  while ((pos = s.find('%', pos)) != std::string::npos) {
+    s.insert(pos, 1, '%');
+    pos += 2;
+  }
+  return s;
+}
+
+std::string build_inline_ptx_cuda_repro(const Case& c) {
+  const int acc_regs = c.acc_f16 ? 2 : 4;
+  std::ostringstream body;
+  body << "{\n"
+       << "  .reg .b32 %a<" << c.a_regs << ">, %b<" << c.b_regs << ">;\n";
+  if (c.acc_f16) body << "  .reg .b32 %d<" << acc_regs << ">;\n";
+  else body << "  .reg .f32 %d<" << acc_regs << ">;\n";
+  if (c.sparse) body << "  .reg .b32 %meta;\n";
+  if (c.block_scale) body << "  .reg .b32 %sa, %sb;\n";
+
+  for (int i = 0; i < c.a_regs; ++i)
+    body << "  mov.b32 %a" << i << ", 0x14141414;\n";
+  for (int i = 0; i < c.b_regs; ++i)
+    body << "  mov.b32 %b" << i << ", 0x0c0c0c0c;\n";
+  for (int i = 0; i < acc_regs; ++i) {
+    if (c.acc_f16) body << "  mov.b32 %d" << i << ", 0;\n";
+    else body << "  mov.f32 %d" << i << ", 0f00000000;\n";
+  }
+  if (c.sparse) body << "  mov.b32 %meta, 0x44444444;\n";
+  if (c.block_scale) {
+    body << "  mov.b32 %sa, 0x38383838;\n"
+         << "  mov.b32 %sb, 0x38383838;\n";
+  }
+
+  const std::string d = reg_tuple("d", 0, acc_regs);
+  body << "  " << c.opcode << "\n"
+       << "    " << d << ", "
+       << reg_tuple("a", 0, c.a_regs) << ", "
+       << reg_tuple("b", 0, c.b_regs) << ", "
+       << d;
+  if (c.sparse) body << ", %meta, " << c.sparse_selector;
+  if (c.block_scale) {
+    body << ", %sa, {" << c.byte_a << ", " << c.thread_a << "}"
+         << ", %sb, {" << c.byte_b << ", " << c.thread_b << "}";
+  }
+  body << ";\n}\n";
+
+  std::ostringstream src;
+  src << "// Auto-generated standalone CUDA reproduction for " << c.name << "\n"
+      << "// PTX ISA requested by benchmark: " << ptx_version_for_case(c) << "\n"
+      << "// Suggested compile: nvcc -arch=sm_120a -lineinfo inline_ptx_repro.cu -o repro\n"
+      << "#include <cuda_runtime.h>\n"
+      << "#include <cstdio>\n\n"
+      << "__global__ void repro_kernel() {\n"
+      << "  asm volatile(R\"PTX(\n"
+      << double_percent(body.str())
+      << ")PTX\");\n"
+      << "}\n\n"
+      << "int main() {\n"
+      << "  repro_kernel<<<1, 32>>>();\n"
+      << "  cudaError_t launch = cudaGetLastError();\n"
+      << "  if (launch != cudaSuccess) {\n"
+      << "    std::fprintf(stderr, \"launch: %s\\n\", cudaGetErrorString(launch));\n"
+      << "    return 1;\n"
+      << "  }\n"
+      << "  cudaError_t sync = cudaDeviceSynchronize();\n"
+      << "  if (sync != cudaSuccess) {\n"
+      << "    std::fprintf(stderr, \"sync: %s\\n\", cudaGetErrorString(sync));\n"
+      << "    return 2;\n"
+      << "  }\n"
+      << "  return 0;\n"
+      << "}\n";
+  return src.str();
+}
+
+std::string case_metadata(const Case& c, const Options& opt) {
+  std::ostringstream out;
+  out << "name=" << c.name << "\n"
+      << "opcode=" << c.opcode << "\n"
+      << "ptx_version=" << ptx_version_for_case(c) << "\n"
+      << "target=sm_120a\n"
+      << "m=" << c.m << "\n"
+      << "n=" << c.n << "\n"
+      << "k=" << c.k << "\n"
+      << "a_regs=" << c.a_regs << "\n"
+      << "b_regs=" << c.b_regs << "\n"
+      << "acc_f16=" << (c.acc_f16 ? "yes" : "no") << "\n"
+      << "sparse=" << (c.sparse ? "yes" : "no") << "\n"
+      << "block_scale=" << (c.block_scale ? "yes" : "no") << "\n"
+      << "scale_vec=" << c.scale_vec << "\n"
+      << "byte_a=" << c.byte_a << "\n"
+      << "thread_a=" << c.thread_a << "\n"
+      << "byte_b=" << c.byte_b << "\n"
+      << "thread_b=" << c.thread_b << "\n"
+      << "chains=" << opt.chains << "\n"
+      << "inner_unroll=" << kInnerUnroll << "\n"
+      << "iters=" << opt.iters << "\n"
+      << "blocks_per_sm=" << opt.blocks_per_sm << "\n"
+      << "repeats=" << opt.repeats << "\n";
+  return out.str();
 }
 
 CuratedOptions parse_curated_args(int argc, char** argv) {
