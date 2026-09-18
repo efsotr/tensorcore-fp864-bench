@@ -2,53 +2,143 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "tensorcore-fp864x-fp664 curated result",
   "type": "object",
-  "required": ["schema_version", "suite", "timestamp_utc", "device", "config", "summary", "cases"],
+  "required": [
+    "schema_version",
+    "suite",
+    "timestamp_utc",
+    "device",
+    "config",
+    "summary",
+    "cases"
+  ],
   "properties": {
-    "schema_version": { "const": 1 },
-    "suite": { "const": "fp864x-fp664-curated" },
-    "timestamp_utc": { "type": "string" },
+    "schema_version": {
+      "const": 2
+    },
+    "suite": {
+      "const": "fp864x-fp664-curated"
+    },
+    "timestamp_utc": {
+      "type": "string"
+    },
     "device": {
       "type": "object",
-      "required": ["name", "compute_capability", "sm_count", "reported_clock_mhz", "driver_api", "ptx", "target"],
+      "required": [
+        "name",
+        "compute_capability",
+        "sm_count",
+        "reported_clock_mhz",
+        "driver_api",
+        "ptx",
+        "target"
+      ],
       "properties": {
-        "name": { "type": "string" },
-        "compute_capability": { "type": "string" },
-        "sm_count": { "type": "integer" },
-        "reported_clock_mhz": { "type": "number" },
-        "driver_api": { "type": "integer" },
-        "ptx": { "const": "9.1" },
-        "target": { "const": "sm_120a" }
+        "name": {
+          "type": "string"
+        },
+        "compute_capability": {
+          "type": "string"
+        },
+        "sm_count": {
+          "type": "integer"
+        },
+        "reported_clock_mhz": {
+          "type": "number"
+        },
+        "driver_api": {
+          "type": "integer"
+        },
+        "ptx": {
+          "const": "9.0"
+        },
+        "target": {
+          "const": "sm_120a"
+        }
       },
       "additionalProperties": false
     },
     "config": {
       "type": "object",
-      "required": ["iters", "blocks_per_sm", "chains", "inner_unroll", "repeats", "filter"],
+      "required": [
+        "iters",
+        "blocks_per_sm",
+        "chains",
+        "inner_unroll",
+        "repeats",
+        "filter"
+      ],
       "properties": {
-        "iters": { "type": "integer", "minimum": 1 },
-        "blocks_per_sm": { "type": "integer", "minimum": 1 },
-        "chains": { "enum": [1, 2, 4, 8] },
-        "inner_unroll": { "const": 4 },
-        "repeats": { "type": "integer", "minimum": 1 },
-        "filter": { "type": "string" }
+        "iters": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "blocks_per_sm": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "chains": {
+          "enum": [
+            1,
+            2,
+            4,
+            8
+          ]
+        },
+        "inner_unroll": {
+          "const": 4
+        },
+        "repeats": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "filter": {
+          "type": "string"
+        }
       },
       "additionalProperties": false
     },
     "summary": {
       "type": "object",
-      "required": ["selected", "passed", "failed", "peaks"],
+      "required": [
+        "selected",
+        "passed",
+        "failed",
+        "peaks"
+      ],
       "properties": {
-        "selected": { "type": "integer", "minimum": 0 },
-        "passed": { "type": "integer", "minimum": 0 },
-        "failed": { "type": "integer", "minimum": 0 },
+        "selected": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "passed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "failed": {
+          "type": "integer",
+          "minimum": 0
+        },
         "peaks": {
           "type": "object",
-          "required": ["unscaled_f8f6f4", "mxf8f6f4", "mxf4", "mxf4nvf4"],
+          "required": [
+            "unscaled_f8f6f4",
+            "mxf8f6f4",
+            "mxf4",
+            "mxf4nvf4"
+          ],
           "properties": {
-            "unscaled_f8f6f4": { "$ref": "#/$defs/peakOrNull" },
-            "mxf8f6f4": { "$ref": "#/$defs/peakOrNull" },
-            "mxf4": { "$ref": "#/$defs/peakOrNull" },
-            "mxf4nvf4": { "$ref": "#/$defs/peakOrNull" }
+            "unscaled_f8f6f4": {
+              "$ref": "#/$defs/peakOrNull"
+            },
+            "mxf8f6f4": {
+              "$ref": "#/$defs/peakOrNull"
+            },
+            "mxf4": {
+              "$ref": "#/$defs/peakOrNull"
+            },
+            "mxf4nvf4": {
+              "$ref": "#/$defs/peakOrNull"
+            }
           },
           "additionalProperties": false
         }
@@ -57,19 +147,30 @@
     },
     "cases": {
       "type": "array",
-      "items": { "$ref": "#/$defs/caseResult" }
+      "items": {
+        "$ref": "#/$defs/caseResult"
+      }
     }
   },
   "$defs": {
     "peakOrNull": {
       "anyOf": [
-        { "type": "null" },
+        {
+          "type": "null"
+        },
         {
           "type": "object",
-          "required": ["tflops", "case_name"],
+          "required": [
+            "tflops",
+            "case_name"
+          ],
           "properties": {
-            "tflops": { "type": "number" },
-            "case_name": { "type": "string" }
+            "tflops": {
+              "type": "number"
+            },
+            "case_name": {
+              "type": "string"
+            }
           },
           "additionalProperties": false
         }
@@ -77,17 +178,76 @@
     },
     "caseResult": {
       "type": "object",
-      "required": ["status", "name", "opcode", "error", "best_ms", "mean_ms", "peak_logical_tflops", "mean_logical_tflops", "regs_per_thread"],
+      "required": [
+        "status",
+        "name",
+        "opcode",
+        "ptx_version",
+        "ptx_path",
+        "cuda_repro_path",
+        "jit_error_log_path",
+        "jit_info_log_path",
+        "jit_error_log",
+        "jit_info_log",
+        "error",
+        "best_ms",
+        "mean_ms",
+        "peak_logical_tflops",
+        "mean_logical_tflops",
+        "regs_per_thread"
+      ],
       "properties": {
-        "status": { "type": "string" },
-        "name": { "type": "string" },
-        "opcode": { "type": "string" },
-        "error": { "type": ["string", "null"] },
-        "best_ms": { "type": "number" },
-        "mean_ms": { "type": "number" },
-        "peak_logical_tflops": { "type": "number" },
-        "mean_logical_tflops": { "type": "number" },
-        "regs_per_thread": { "type": "integer" }
+        "status": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "opcode": {
+          "type": "string"
+        },
+        "error": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "best_ms": {
+          "type": "number"
+        },
+        "mean_ms": {
+          "type": "number"
+        },
+        "peak_logical_tflops": {
+          "type": "number"
+        },
+        "mean_logical_tflops": {
+          "type": "number"
+        },
+        "regs_per_thread": {
+          "type": "integer"
+        },
+        "ptx_version": {
+          "const": "9.0"
+        },
+        "ptx_path": {
+          "type": "string"
+        },
+        "cuda_repro_path": {
+          "type": "string"
+        },
+        "jit_error_log_path": {
+          "type": "string"
+        },
+        "jit_info_log_path": {
+          "type": "string"
+        },
+        "jit_error_log": {
+          "type": "string"
+        },
+        "jit_info_log": {
+          "type": "string"
+        }
       },
       "additionalProperties": false
     }
