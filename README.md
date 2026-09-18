@@ -139,4 +139,20 @@ Important options:
 --verbose-jit
 ```
 
-See `docs/ptx-coverage.md` for PTX classification and `docs/output-and-sass.md` for output/SASS semantics.
+For a smaller dense-only smoke/performance suite, run:
+
+```bash
+./build/tensorcore-fp864x-fp664-bench
+```
+
+The curated 20-case suite prints a final family peak table and writes:
+
+```text
+results/<UTC timestamp>_<GPU>_fp864x_fp664/
+  cases.log
+  result.json
+```
+
+Its `result.json` is the complete machine-readable curated result. See `docs/fp864xfp664.md` for the exact allowlist and output semantics.
+
+See `docs/ptx-coverage.md` for PTX classification and `docs/output-and-sass.md` for full-suite output/SASS semantics.
