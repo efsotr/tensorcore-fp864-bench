@@ -43,7 +43,6 @@ const std::vector<std::string>& curated_case_names() {
 
       // Common FP4 block-scaled reference points.
       "dense/mxf4/e2m1xe2m1/ue8m0-2X",
-      "dense/mxf4nvf4/e2m1xe2m1/ue8m0-4X",
       "dense/mxf4nvf4/e2m1xe2m1/ue4m3-4X",
   };
   return names;
@@ -226,7 +225,7 @@ void write_result_json(
       << "    \"reported_clock_mhz\": " << std::fixed << std::setprecision(3)
       << (clock_khz / 1000.0) << ",\n"
       << "    \"driver_api\": " << driver_version << ",\n"
-      << "    \"ptx\": \"9.1\",\n"
+      << "    \"ptx\": \"9.0\",\n"
       << "    \"target\": \"sm_120a\"\n"
       << "  },\n"
       << "  \"config\": {\n"
@@ -364,7 +363,7 @@ int main(int argc, char** argv) {
            << " sm_count=" << sms
            << " reported_clock_mhz=" << (clock_khz / 1000.0)
            << " driver_api=" << driver_version
-           << " ptx=9.1 target=sm_120a"
+           << " ptx=9.0 target=sm_120a"
            << " inner_unroll=" << kInnerUnroll
            << " output_dir=\"" << run_dir.string() << "\"";
       emit_line(case_log, line.str(), false);
