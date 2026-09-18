@@ -178,6 +178,14 @@ void write_text_file(const fs::path& path, const std::string& text) {
   if (!out) throw std::runtime_error("cannot write " + path.string());
   out << text;
 }
+
+std::string read_text_file(const fs::path& path) {
+  std::ifstream in(path, std::ios::binary);
+  if (!in) return "<unavailable>\n";
+  std::ostringstream out;
+  out << in.rdbuf();
+  return out.str();
+}
 std::string double_percent(std::string s) {
   size_t pos = 0;
   while ((pos = s.find('%', pos)) != std::string::npos) {
@@ -587,7 +595,23 @@ int main(int argc, char** argv) {
     write_text_file(run_dir / "run_info.txt", run_info.str());
     case_log << "=== RUN INFO BEGIN ===\n"
              << run_info.str()
-             << "=== RUN INFO END ===\n";
+             << "=== RUN INFO END ===\n"
+             << "=== SYSTEM SNAPSHOT: nvidia-smi ===\n"
+             << read_text_file(system_dir / "nvidia-smi.txt")
+             << "=== SYSTEM SNAPSHOT: nvidia-smi -q ===\n"
+             << read_text_file(system_dir / "nvidia-smi-q.txt")
+             << "=== TOOLCHAIN: nvcc --version ===\n"
+             << read_text_file(system_dir / "nvcc-version.txt")
+             << "=== TOOLCHAIN: ptxas --version ===\n"
+             << read_text_file(system_dir / "ptxas-version.txt")
+             << "=== TOOLCHAIN: nvdisasm --version ===\n"
+             << read_text_file(system_dir / "nvdisasm-version.txt")
+             << "=== SYSTEM: uname -a ===\n"
+             << read_text_file(system_dir / "uname.txt");
+#if defined(__linux__)
+    case_log << "=== LINKAGE: ldd /proc/self/exe ===\n"
+             << read_text_file(system_dir / "ldd-self.txt");
+#endif
     case_log.flush();
 
     {
@@ -647,8 +671,9 @@ int main(int argc, char** argv) {
       result.jit_info_log_path = jit_info_path.string();
 
       const std::string ptx = build_ptx(c, opt.chains);
+      const std::string cuda_repro = build_inline_ptx_cuda_repro(c);
       write_text_file(ptx_path, ptx);
-      write_text_file(cuda_repro_path, build_inline_ptx_cuda_repro(c));
+      write_text_file(cuda_repro_path, cuda_repro);
       write_text_file(metadata_path, case_metadata(c, opt));
 
       LoadedModule mod;
@@ -667,6 +692,9 @@ int main(int argc, char** argv) {
                << "--- GENERATED PTX BEGIN ---\n"
                << ptx
                << "--- GENERATED PTX END ---\n"
+               << "--- INLINE PTX CUDA REPRO BEGIN ---\n"
+               << cuda_repro
+               << "--- INLINE PTX CUDA REPRO END ---\n"
                << "--- CUDA JIT ERROR LOG BEGIN ---\n"
                << (mod.error_log.empty() ? "<empty>\n" : mod.error_log + "\n")
                << "--- CUDA JIT ERROR LOG END ---\n"
