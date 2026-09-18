@@ -155,14 +155,26 @@ std::string env_value(const char* name) {
 }
 
 std::string shell_quote_path(const std::string& s) {
-  std::string out = "\"";
+  std::string out = "\\\"";
   for (char ch : s) {
-    if (ch == '\\\\' || ch == '\"' || ch == 'void write_text_file(const fs::path& path, const std::string& text) {
+    if (ch == '\\\\' || ch == '"') out.push_back('\\\\');
+    out.push_back(ch);
+  }
+  out.push_back('"');
+  return out;
+}
+
+int capture_command(const std::string& command, const fs::path& output) {
+  const std::string full =
+      command + " > " + shell_quote_path(output.string()) + " 2>&1";
+  return std::system(full.c_str());
+}
+
+void write_text_file(const fs::path& path, const std::string& text) {
   std::ofstream out(path, std::ios::binary);
   if (!out) throw std::runtime_error("cannot write " + path.string());
   out << text;
 }
-
 std::string double_percent(std::string s) {
   size_t pos = 0;
   while ((pos = s.find('%', pos)) != std::string::npos) {
