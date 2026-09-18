@@ -406,6 +406,13 @@ void write_result_json(
         << "      \"status\": \"" << json_escape(r.status) << "\",\n"
         << "      \"name\": \"" << json_escape(r.name) << "\",\n"
         << "      \"opcode\": \"" << json_escape(r.opcode) << "\",\n"
+        << "      \"ptx_version\": \"" << json_escape(r.ptx_version) << "\",\n"
+        << "      \"ptx_path\": \"" << json_escape(r.ptx_path) << "\",\n"
+        << "      \"cuda_repro_path\": \"" << json_escape(r.cuda_repro_path) << "\",\n"
+        << "      \"jit_error_log_path\": \"" << json_escape(r.jit_error_log_path) << "\",\n"
+        << "      \"jit_info_log_path\": \"" << json_escape(r.jit_info_log_path) << "\",\n"
+        << "      \"jit_error_log\": \"" << json_escape(r.jit_error_log) << "\",\n"
+        << "      \"jit_info_log\": \"" << json_escape(r.jit_info_log) << "\",\n"
         << "      \"error\": ";
     if (r.error.empty()) out << "null,\n";
     else out << "\"" << json_escape(r.error) << "\",\n";
@@ -468,11 +475,20 @@ int main(int argc, char** argv) {
 
     char device_name[256] = {};
     int major = 0, minor = 0, sms = 0, clock_khz = 0, driver_version = 0;
+    int warp_size = 0, max_threads_per_block = 0;
+    int memory_clock_khz = 0, memory_bus_width_bits = 0, l2_bytes = 0;
+    size_t total_memory_bytes = 0;
     check(cuDeviceGetName(device_name, sizeof(device_name), dev), "cuDeviceGetName");
     check(cuDeviceGetAttribute(&major, CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MAJOR, dev), "CC major");
     check(cuDeviceGetAttribute(&minor, CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MINOR, dev), "CC minor");
     check(cuDeviceGetAttribute(&sms, CU_DEVICE_ATTRIBUTE_MULTIPROCESSOR_COUNT, dev), "SM count");
     check(cuDeviceGetAttribute(&clock_khz, CU_DEVICE_ATTRIBUTE_CLOCK_RATE, dev), "clock rate");
+    check(cuDeviceGetAttribute(&warp_size, CU_DEVICE_ATTRIBUTE_WARP_SIZE, dev), "warp size");
+    check(cuDeviceGetAttribute(&max_threads_per_block, CU_DEVICE_ATTRIBUTE_MAX_THREADS_PER_BLOCK, dev), "max threads per block");
+    check(cuDeviceGetAttribute(&memory_clock_khz, CU_DEVICE_ATTRIBUTE_MEMORY_CLOCK_RATE, dev), "memory clock rate");
+    check(cuDeviceGetAttribute(&memory_bus_width_bits, CU_DEVICE_ATTRIBUTE_GLOBAL_MEMORY_BUS_WIDTH, dev), "memory bus width");
+    check(cuDeviceGetAttribute(&l2_bytes, CU_DEVICE_ATTRIBUTE_L2_CACHE_SIZE, dev), "L2 cache size");
+    check(cuDeviceTotalMem(&total_memory_bytes, dev), "total device memory");
     check(cuDriverGetVersion(&driver_version), "driver version");
 
     if (major != 12 || minor != 0) {
@@ -489,9 +505,51 @@ int main(int argc, char** argv) {
         ? fs::path("results") / (stamp + "_" + slug(device_name) + "_fp864x_fp664")
         : fs::path(ropt.output_dir);
     fs::create_directories(run_dir);
-    fs::create_directories(run_dir / "ptx");
+    fs::create_directories(run_dir / "artifacts");
     std::ofstream case_log(run_dir / "cases.log", std::ios::binary);
     if (!case_log) throw std::runtime_error("cannot write " + (run_dir / "cases.log").string());
+
+    std::ostringstream run_info;
+    run_info
+        << "suite=fp864x-fp664-curated\n"
+        << "timestamp_utc=" << stamp << "\n"
+        << "command_line=" << command_line_string(argc, argv) << "\n"
+        << "working_directory=" << fs::current_path().string() << "\n"
+        << "output_dir=" << run_dir.string() << "\n"
+        << "curated_cases=" << curated_case_names().size() << "\n"
+        << "dense_only=yes\n"
+        << "sparse=no\n"
+        << "accumulator=f32\n"
+        << "cuda_header_version=" << CUDA_VERSION << "\n"
+        << "cuda_driver_api=" << driver_version << "\n"
+        << "device_name=" << device_name << "\n"
+        << "compute_capability=" << major << "." << minor << "\n"
+        << "target=sm_120a\n"
+        << "ptx=9.0\n"
+        << "sm_count=" << sms << "\n"
+        << "warp_size=" << warp_size << "\n"
+        << "max_threads_per_block=" << max_threads_per_block << "\n"
+        << "reported_clock_khz=" << clock_khz << "\n"
+        << "reported_memory_clock_khz=" << memory_clock_khz << "\n"
+        << "memory_bus_width_bits=" << memory_bus_width_bits << "\n"
+        << "l2_cache_bytes=" << l2_bytes << "\n"
+        << "total_device_memory_bytes=" << total_memory_bytes << "\n"
+        << "iters=" << opt.iters << "\n"
+        << "blocks_per_sm=" << opt.blocks_per_sm << "\n"
+        << "chains=" << opt.chains << "\n"
+        << "inner_unroll=" << kInnerUnroll << "\n"
+        << "repeats=" << opt.repeats << "\n"
+        << "filter=" << opt.filter << "\n"
+        << "verbose_jit=" << (opt.verbose_jit ? "yes" : "no") << "\n"
+        << "CUDA_HOME=" << env_value("CUDA_HOME") << "\n"
+        << "CUDA_PATH=" << env_value("CUDA_PATH") << "\n"
+        << "PATH=" << env_value("PATH") << "\n"
+        << "LD_LIBRARY_PATH=" << env_value("LD_LIBRARY_PATH") << "\n";
+    write_text_file(run_dir / "run_info.txt", run_info.str());
+    case_log << "=== RUN INFO BEGIN ===\n"
+             << run_info.str()
+             << "=== RUN INFO END ===\n";
+    case_log.flush();
 
     {
       std::ostringstream line;
@@ -503,6 +561,7 @@ int main(int argc, char** argv) {
            << " sm_count=" << sms
            << " reported_clock_mhz=" << (clock_khz / 1000.0)
            << " driver_api=" << driver_version
+           << " cuda_header=" << CUDA_VERSION
            << " ptx=9.0 target=sm_120a"
            << " inner_unroll=" << kInnerUnroll
            << " output_dir=\"" << run_dir.string() << "\"";
@@ -532,28 +591,68 @@ int main(int argc, char** argv) {
       CuratedResult result;
       result.name = c.name;
       result.opcode = c.opcode;
+      result.ptx_version = ptx_version_for_case(c);
+
+      const std::string stem = slug(c.name);
+      const fs::path artifact_dir = run_dir / "artifacts" / stem;
+      fs::create_directories(artifact_dir);
+      const fs::path ptx_path = artifact_dir / "generated.ptx";
+      const fs::path cuda_repro_path = artifact_dir / "inline_ptx_repro.cu";
+      const fs::path metadata_path = artifact_dir / "case.txt";
+      const fs::path jit_error_path = artifact_dir / "jit_error.log";
+      const fs::path jit_info_path = artifact_dir / "jit_info.log";
+
+      result.ptx_path = ptx_path.string();
+      result.cuda_repro_path = cuda_repro_path.string();
+      result.jit_error_log_path = jit_error_path.string();
+      result.jit_info_log_path = jit_info_path.string();
 
       const std::string ptx = build_ptx(c, opt.chains);
-      const fs::path ptx_path = run_dir / "ptx" / (slug(c.name) + ".ptx");
-      {
-        std::ofstream ptx_out(ptx_path, std::ios::binary);
-        if (!ptx_out) throw std::runtime_error("cannot write " + ptx_path.string());
-        ptx_out << ptx;
-      }
+      write_text_file(ptx_path, ptx);
+      write_text_file(cuda_repro_path, build_inline_ptx_cuda_repro(c));
+      write_text_file(metadata_path, case_metadata(c, opt));
 
       LoadedModule mod;
       const CUresult jit_result = load_ptx(ptx, mod);
+      result.jit_error_log = mod.error_log;
+      result.jit_info_log = mod.info_log;
+      write_text_file(jit_error_path, mod.error_log);
+      write_text_file(jit_info_path, mod.info_log);
+
+      case_log << "\n=== CASE BEGIN: " << c.name << " ===\n"
+               << case_metadata(c, opt)
+               << "generated_ptx=" << ptx_path.string() << "\n"
+               << "inline_ptx_cuda_repro=" << cuda_repro_path.string() << "\n"
+               << "jit_error_log=" << jit_error_path.string() << "\n"
+               << "jit_info_log=" << jit_info_path.string() << "\n"
+               << "--- GENERATED PTX BEGIN ---\n"
+               << ptx
+               << "--- GENERATED PTX END ---\n"
+               << "--- CUDA JIT ERROR LOG BEGIN ---\n"
+               << (mod.error_log.empty() ? "<empty>\n" : mod.error_log + "\n")
+               << "--- CUDA JIT ERROR LOG END ---\n"
+               << "--- CUDA JIT INFO LOG BEGIN ---\n"
+               << (mod.info_log.empty() ? "<empty>\n" : mod.info_log + "\n")
+               << "--- CUDA JIT INFO LOG END ---\n"
+               << "jit_result_code=" << static_cast<int>(jit_result) << "\n"
+               << "jit_result=" << cuda_error(jit_result) << "\n";
+      case_log.flush();
+
       if (jit_result != CUDA_SUCCESS) {
         result.status = "FAIL_DOCUMENTED";
         result.error = cuda_error(jit_result);
         emit_line(
             case_log,
-            "FAIL_DOCUMENTED name=" + c.name + " error=\"" + result.error +
-                "\" ptx=\"" + ptx_path.string() + "\"",
+            "FAIL_DOCUMENTED name=" + c.name +
+                " ptx_version=" + result.ptx_version +
+                " error=\"" + result.error +
+                "\" artifacts=\"" + artifact_dir.string() + "\"",
             ropt.quiet_cases);
-        if (!mod.log.empty()) {
-          emit_line(case_log, "JIT_LOG name=" + c.name + " " + mod.log, ropt.quiet_cases);
+        if (opt.verbose_jit && !mod.log.empty() && !ropt.quiet_cases) {
+          std::cout << mod.log << '\n';
         }
+        case_log << "=== CASE END: " << c.name << " status=FAIL_DOCUMENTED ===\n";
+        case_log.flush();
         results.push_back(std::move(result));
         continue;
       }
@@ -620,9 +719,11 @@ int main(int argc, char** argv) {
            << " repeats=" << opt.repeats;
       emit_line(case_log, line.str(), ropt.quiet_cases);
 
-      if (opt.verbose_jit && !mod.log.empty()) {
-        emit_line(case_log, mod.log, ropt.quiet_cases);
+      if (opt.verbose_jit && !mod.log.empty() && !ropt.quiet_cases) {
+        std::cout << mod.log << '\n';
       }
+      case_log << "=== CASE END: " << c.name << " status=PASS ===\n";
+      case_log.flush();
       unload(mod);
       results.push_back(std::move(result));
     }
@@ -642,8 +743,10 @@ int main(int argc, char** argv) {
               << " passed=" << passed
               << " failed=" << failed
               << " curated_manifest=" << curated_case_names().size() << '\n'
+              << "Saved run info: " << (run_dir / "run_info.txt") << '\n'
               << "Saved log: " << (run_dir / "cases.log") << '\n'
-              << "Saved JSON: " << result_json << '\n';
+              << "Saved JSON: " << result_json << '\n'
+              << "Per-case artifacts: " << (run_dir / "artifacts") << '\n';
 
     cuEventDestroy(start);
     cuEventDestroy(stop);
