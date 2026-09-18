@@ -372,7 +372,7 @@ void write_result_json(
   if (!out) throw std::runtime_error("cannot write " + path.string());
 
   out << "{\n"
-      << "  \"schema_version\": 1,\n"
+      << "  \"schema_version\": 2,\n"
       << "  \"suite\": \"fp864x-fp664-curated\",\n"
       << "  \"timestamp_utc\": \"" << json_escape(stamp) << "\",\n"
       << "  \"device\": {\n"
