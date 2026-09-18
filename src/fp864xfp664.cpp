@@ -155,15 +155,18 @@ std::string env_value(const char* name) {
 }
 
 std::string shell_quote_path(const std::string& s) {
-  std::string out = "\\\"";
+  std::string out;
+  out.push_back(static_cast<char>(34));
   for (char ch : s) {
-    if (ch == '\\\\' || ch == '"') out.push_back('\\\\');
+    if (ch == static_cast<char>(92) || ch == static_cast<char>(34) ||
+        ch == static_cast<char>(36) || ch == static_cast<char>(96)) {
+      out.push_back(static_cast<char>(92));
+    }
     out.push_back(ch);
   }
-  out.push_back('"');
+  out.push_back(static_cast<char>(34));
   return out;
 }
-
 int capture_command(const std::string& command, const fs::path& output) {
   const std::string full =
       command + " > " + shell_quote_path(output.string()) + " 2>&1";
