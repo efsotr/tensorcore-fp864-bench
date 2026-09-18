@@ -350,6 +350,7 @@ int main(int argc, char** argv) {
         ? fs::path("results") / (stamp + "_" + slug(device_name) + "_fp864x_fp664")
         : fs::path(ropt.output_dir);
     fs::create_directories(run_dir);
+    fs::create_directories(run_dir / "ptx");
     std::ofstream case_log(run_dir / "cases.log", std::ios::binary);
     if (!case_log) throw std::runtime_error("cannot write " + (run_dir / "cases.log").string());
 
@@ -393,17 +394,26 @@ int main(int argc, char** argv) {
       result.name = c.name;
       result.opcode = c.opcode;
 
+      const std::string ptx = build_ptx(c, opt.chains);
+      const fs::path ptx_path = run_dir / "ptx" / (slug(c.name) + ".ptx");
+      {
+        std::ofstream ptx_out(ptx_path, std::ios::binary);
+        if (!ptx_out) throw std::runtime_error("cannot write " + ptx_path.string());
+        ptx_out << ptx;
+      }
+
       LoadedModule mod;
-      const CUresult jit_result = load_ptx(build_ptx(c, opt.chains), mod);
+      const CUresult jit_result = load_ptx(ptx, mod);
       if (jit_result != CUDA_SUCCESS) {
         result.status = "FAIL_DOCUMENTED";
         result.error = cuda_error(jit_result);
         emit_line(
             case_log,
-            "FAIL_DOCUMENTED name=" + c.name + " error=\"" + result.error + "\"",
+            "FAIL_DOCUMENTED name=" + c.name + " error=\"" + result.error +
+                "\" ptx=\"" + ptx_path.string() + "\"",
             ropt.quiet_cases);
-        if (opt.verbose_jit && !mod.log.empty()) {
-          emit_line(case_log, mod.log, ropt.quiet_cases);
+        if (!mod.log.empty()) {
+          emit_line(case_log, "JIT_LOG name=" + c.name + " " + mod.log, ropt.quiet_cases);
         }
         results.push_back(std::move(result));
         continue;
