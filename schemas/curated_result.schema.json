@@ -1,0 +1,96 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "tensorcore-fp864x-fp664 curated result",
+  "type": "object",
+  "required": ["schema_version", "suite", "timestamp_utc", "device", "config", "summary", "cases"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "suite": { "const": "fp864x-fp664-curated" },
+    "timestamp_utc": { "type": "string" },
+    "device": {
+      "type": "object",
+      "required": ["name", "compute_capability", "sm_count", "reported_clock_mhz", "driver_api", "ptx", "target"],
+      "properties": {
+        "name": { "type": "string" },
+        "compute_capability": { "type": "string" },
+        "sm_count": { "type": "integer" },
+        "reported_clock_mhz": { "type": "number" },
+        "driver_api": { "type": "integer" },
+        "ptx": { "const": "9.1" },
+        "target": { "const": "sm_120a" }
+      },
+      "additionalProperties": false
+    },
+    "config": {
+      "type": "object",
+      "required": ["iters", "blocks_per_sm", "chains", "inner_unroll", "repeats", "filter"],
+      "properties": {
+        "iters": { "type": "integer", "minimum": 1 },
+        "blocks_per_sm": { "type": "integer", "minimum": 1 },
+        "chains": { "enum": [1, 2, 4, 8] },
+        "inner_unroll": { "const": 4 },
+        "repeats": { "type": "integer", "minimum": 1 },
+        "filter": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "summary": {
+      "type": "object",
+      "required": ["selected", "passed", "failed", "peaks"],
+      "properties": {
+        "selected": { "type": "integer", "minimum": 0 },
+        "passed": { "type": "integer", "minimum": 0 },
+        "failed": { "type": "integer", "minimum": 0 },
+        "peaks": {
+          "type": "object",
+          "required": ["unscaled_f8f6f4", "mxf8f6f4", "mxf4", "mxf4nvf4"],
+          "properties": {
+            "unscaled_f8f6f4": { "$ref": "#/$defs/peakOrNull" },
+            "mxf8f6f4": { "$ref": "#/$defs/peakOrNull" },
+            "mxf4": { "$ref": "#/$defs/peakOrNull" },
+            "mxf4nvf4": { "$ref": "#/$defs/peakOrNull" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "cases": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/caseResult" }
+    }
+  },
+  "$defs": {
+    "peakOrNull": {
+      "anyOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "required": ["tflops", "case_name"],
+          "properties": {
+            "tflops": { "type": "number" },
+            "case_name": { "type": "string" }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "caseResult": {
+      "type": "object",
+      "required": ["status", "name", "opcode", "error", "best_ms", "mean_ms", "peak_logical_tflops", "mean_logical_tflops", "regs_per_thread"],
+      "properties": {
+        "status": { "type": "string" },
+        "name": { "type": "string" },
+        "opcode": { "type": "string" },
+        "error": { "type": ["string", "null"] },
+        "best_ms": { "type": "number" },
+        "mean_ms": { "type": "number" },
+        "peak_logical_tflops": { "type": "number" },
+        "mean_logical_tflops": { "type": "number" },
+        "regs_per_thread": { "type": "integer" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
