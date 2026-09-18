@@ -532,8 +532,8 @@ int main(int argc, char** argv) {
         : fs::path(ropt.output_dir);
     fs::create_directories(run_dir);
     fs::create_directories(run_dir / "artifacts");
-    std::ofstream case_log(run_dir / "cases.log", std::ios::binary);
-    if (!case_log) throw std::runtime_error("cannot write " + (run_dir / "cases.log").string());
+    std::ofstream case_log(run_dir / "full.log", std::ios::binary);
+    if (!case_log) throw std::runtime_error("cannot write " + (run_dir / "full.log").string());
 
     std::ostringstream run_info;
     run_info
@@ -811,7 +811,7 @@ int main(int argc, char** argv) {
               << " failed=" << failed
               << " curated_manifest=" << curated_case_names().size() << '\n'
               << "Saved run info: " << (run_dir / "run_info.txt") << '\n'
-              << "Saved log: " << (run_dir / "cases.log") << '\n'
+              << "Saved full log: " << (run_dir / "full.log") << '\n'
               << "Saved JSON: " << result_json << '\n'
               << "Per-case artifacts: " << (run_dir / "artifacts") << '\n';
 
