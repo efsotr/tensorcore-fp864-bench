@@ -1,0 +1,160 @@
+	.target	sm_120
+
+	.elftype	@"ET_EXEC"
+
+
+//--------------------- .text.bench               --------------------------
+	.section	.text.bench,"ax",@progbits
+	.align	128
+        .global         bench
+        .type           bench,@function
+        .size           bench,(.L_x_3 - bench)
+        .other          bench,@"STO_CUDA_ENTRY STV_DEFAULT"
+bench:
+.text.bench:
+        /*0000*/                   LDC R1, c[0x0][0x37c] ;
+        /*0010*/                   S2R R0, SR_LANEID ;
+        /*0020*/                   LDCU UR5, c[0x0][0x388] ;
+        /*0030*/                   MOV R28, 0x3f800000 ;
+        /*0040*/                   MOV R24, 0x40000000 ;
+        /*0050*/                   MOV R4, 0x40400000 ;
+        /*0060*/                   MOV R8, 0x40800000 ;
+        /*0070*/                   MOV R12, 0x40a00000 ;
+        /*0080*/                   MOV R16, 0x40c00000 ;
+        /*0090*/                   MOV R36, 0x40e00000 ;
+        /*00a0*/                   MOV R32, 0x41000000 ;
+        /*00b0*/                   UISETP.GT.U32.AND UP0, UPT, UR5, URZ, UPT ;
+        /*00c0*/                   ISETP.NE.U32.AND P0, PT, R0, RZ, PT ;
+        /*00d0*/                   BRA.U !UP0, `(.L_x_0) ;
+        /*00e0*/                   MOV R29, RZ ;
+        /*00f0*/                   CS2R R30, SRZ ;
+        /*0100*/                   MOV R25, RZ ;
+        /*0110*/                   CS2R R26, SRZ ;
+        /*0120*/                   MOV R5, RZ ;
+        /*0130*/                   CS2R R6, SRZ ;
+        /*0140*/                   MOV R9, RZ ;
+        /*0150*/                   CS2R R10, SRZ ;
+        /*0160*/                   MOV R13, RZ ;
+        /*0170*/                   CS2R R14, SRZ ;
+        /*0180*/                   MOV R17, RZ ;
+        /*0190*/                   CS2R R18, SRZ ;
+        /*01a0*/                   MOV R37, RZ ;
+        /*01b0*/                   CS2R R38, SRZ ;
+        /*01c0*/                   MOV R33, RZ ;
+        /*01d0*/                   CS2R R34, SRZ ;
+        /*01e0*/                   UMOV UR4, URZ ;
+.L_x_1:
+        /*01f0*/                   MOV R0, 0x38383838 ;
+        /*0200*/                   MOV R2, 0xc0c0c0c ;
+        /*0210*/                   MOV R3, 0xc0c0c0c ;
+        /*0220*/                   MOV R20, 0x14141414 ;
+        /*0230*/                   MOV R21, 0x14141414 ;
+        /*0240*/                   MOV R22, 0x14141414 ;
+        /*0250*/                   MOV R23, 0x14141414 ;
+        /*0260*/                   UIADD3 UR4, UPT, UPT, UR4, 0x1, URZ ;
+        /*0270*/                   UISETP.GE.U32.AND UP0, UPT, UR4, UR5, UPT ;
+        /*0280*/                   OMMA.SF.16864.F32.E2M1.E2M1.UE4M3.4X R28, R20, R2, R28, R0, R0, URZ ;
+        /*0290*/                   NOP ;
+        /*02a0*/                   OMMA.SF.16864.F32.E2M1.E2M1.UE4M3.4X R24, R20, R2, R24, R0, R0, URZ ;
+        /*02b0*/                   NOP ;
+        /*02c0*/                   OMMA.SF.16864.F32.E2M1.E2M1.UE4M3.4X R4, R20, R2, R4, R0, R0, URZ ;
+        /*02d0*/                   NOP ;
+        /*02e0*/                   OMMA.SF.16864.F32.E2M1.E2M1.UE4M3.4X R8, R20, R2, R8, R0, R0, URZ ;
+        /*02f0*/                   NOP ;
+        /*0300*/                   OMMA.SF.16864.F32.E2M1.E2M1.UE4M3.4X R12, R20, R2, R12, R0, R0, URZ ;
+        /*0310*/                   NOP ;
+        /*0320*/                   OMMA.SF.16864.F32.E2M1.E2M1.UE4M3.4X R16, R20, R2, R16, R0, R0, URZ ;
+        /*0330*/                   NOP ;
+        /*0340*/                   OMMA.SF.16864.F32.E2M1.E2M1.UE4M3.4X R36, R20, R2, R36, R0, R0, URZ ;
+        /*0350*/                   NOP ;
+        /*0360*/                   OMMA.SF.16864.F32.E2M1.E2M1.UE4M3.4X R32, R20, R2, R32, R0, R0, URZ ;
+        /*0370*/                   NOP ;
+        /*0380*/                   OMMA.SF.16864.F32.E2M1.E2M1.UE4M3.4X R28, R20, R2, R28, R0, R0, URZ ;
+        /*0390*/                   NOP ;
+        /*03a0*/                   OMMA.SF.16864.F32.E2M1.E2M1.UE4M3.4X R24, R20, R2, R24, R0, R0, URZ ;
+        /*03b0*/                   NOP ;
+        /*03c0*/                   OMMA.SF.16864.F32.E2M1.E2M1.UE4M3.4X R4, R20, R2, R4, R0, R0, URZ ;
+        /*03d0*/                   NOP ;
+        /*03e0*/                   OMMA.SF.16864.F32.E2M1.E2M1.UE4M3.4X R8, R20, R2, R8, R0, R0, URZ ;
+        /*03f0*/                   NOP ;
+        /*0400*/                   OMMA.SF.16864.F32.E2M1.E2M1.UE4M3.4X R12, R20, R2, R12, R0, R0, URZ ;
+        /*0410*/                   NOP ;
+        /*0420*/                   OMMA.SF.16864.F32.E2M1.E2M1.UE4M3.4X R16, R20, R2, R16, R0, R0, URZ ;
+        /*0430*/                   NOP ;
+        /*0440*/                   OMMA.SF.16864.F32.E2M1.E2M1.UE4M3.4X R36, R20, R2, R36, R0, R0, URZ ;
+        /*0450*/                   NOP ;
+        /*0460*/                   OMMA.SF.16864.F32.E2M1.E2M1.UE4M3.4X R32, R20, R2, R32, R0, R0, URZ ;
+        /*0470*/                   NOP ;
+        /*0480*/                   OMMA.SF.16864.F32.E2M1.E2M1.UE4M3.4X R28, R20, R2, R28, R0, R0, URZ ;
+        /*0490*/                   NOP ;
+        /*04a0*/                   OMMA.SF.16864.F32.E2M1.E2M1.UE4M3.4X R24, R20, R2, R24, R0, R0, URZ ;
+        /*04b0*/                   NOP ;
+        /*04c0*/                   OMMA.SF.16864.F32.E2M1.E2M1.UE4M3.4X R4, R20, R2, R4, R0, R0, URZ ;
+        /*04d0*/                   NOP ;
+        /*04e0*/                   OMMA.SF.16864.F32.E2M1.E2M1.UE4M3.4X R8, R20, R2, R8, R0, R0, URZ ;
+        /*04f0*/                   NOP ;
+        /*0500*/                   OMMA.SF.16864.F32.E2M1.E2M1.UE4M3.4X R12, R20, R2, R12, R0, R0, URZ ;
+        /*0510*/                   NOP ;
+        /*0520*/                   OMMA.SF.16864.F32.E2M1.E2M1.UE4M3.4X R16, R20, R2, R16, R0, R0, URZ ;
+        /*0530*/                   NOP ;
+        /*0540*/                   OMMA.SF.16864.F32.E2M1.E2M1.UE4M3.4X R36, R20, R2, R36, R0, R0, URZ ;
+        /*0550*/                   NOP ;
+        /*0560*/                   OMMA.SF.16864.F32.E2M1.E2M1.UE4M3.4X R32, R20, R2, R32, R0, R0, URZ ;
+        /*0570*/                   NOP ;
+        /*0580*/                   OMMA.SF.16864.F32.E2M1.E2M1.UE4M3.4X R28, R20, R2, R28, R0, R0, URZ ;
+        /*0590*/                   NOP ;
+        /*05a0*/                   OMMA.SF.16864.F32.E2M1.E2M1.UE4M3.4X R24, R20, R2, R24, R0, R0, URZ ;
+        /*05b0*/                   NOP ;
+        /*05c0*/                   OMMA.SF.16864.F32.E2M1.E2M1.UE4M3.4X R4, R20, R2, R4, R0, R0, URZ ;
+        /*05d0*/                   NOP ;
+        /*05e0*/                   OMMA.SF.16864.F32.E2M1.E2M1.UE4M3.4X R8, R20, R2, R8, R0, R0, URZ ;
+        /*05f0*/                   NOP ;
+        /*0600*/                   OMMA.SF.16864.F32.E2M1.E2M1.UE4M3.4X R12, R20, R2, R12, R0, R0, URZ ;
+        /*0610*/                   NOP ;
+        /*0620*/                   OMMA.SF.16864.F32.E2M1.E2M1.UE4M3.4X R16, R20, R2, R16, R0, R0, URZ ;
+        /*0630*/                   NOP ;
+        /*0640*/                   OMMA.SF.16864.F32.E2M1.E2M1.UE4M3.4X R36, R20, R2, R36, R0, R0, URZ ;
+        /*0650*/                   NOP ;
+        /*0660*/                   OMMA.SF.16864.F32.E2M1.E2M1.UE4M3.4X R32, R20, R2, R32, R0, R0, URZ ;
+        /*0670*/                   NOP ;
+        /*0680*/                   BRA.U !UP0, `(.L_x_1) ;
+.L_x_0:
+        /*0690*/               @P0 EXIT ;
+        /*06a0*/                   S2R R0, SR_TID.X ;
+        /*06b0*/                   LDC R7, c[0x0][0x360] ;
+        /*06c0*/                   FADD R5, R24, R28 ;
+        /*06d0*/                   LDCU.64 UR6, c[0x0][0x358] ;
+        /*06e0*/                   FADD R5, R5, R4 ;
+        /*06f0*/                   S2UR UR4, SR_CTAID.X ;
+        /*0700*/                   FADD R5, R5, R8 ;
+        /*0710*/                   FADD R5, R5, R12 ;
+        /*0720*/                   LDC.64 R2, c[0x0][0x380] ;
+        /*0730*/                   FADD R5, R5, R16 ;
+        /*0740*/                   FADD R5, R5, R36 ;
+        /*0750*/                   SHF.R.U32.HI R7, RZ, 0x5, R7 ;
+        /*0760*/                   FADD R5, R5, R32 ;
+        /*0770*/                   SHF.R.U32.HI R0, RZ, 0x5, R0 ;
+        /*0780*/                   IMAD R7, R7, UR4, R0 ;
+        /*0790*/                   IMAD.WIDE.U32 R2, R7, 0x4, R2 ;
+        /*07a0*/                   STG.E desc[UR6][R2.64], R5 ;
+        /*07b0*/                   EXIT ;
+.L_x_2:
+        /*07c0*/                   BRA `(.L_x_2);
+        /*07d0*/                   NOP;
+        /*07e0*/                   NOP;
+        /*07f0*/                   NOP;
+        /*0800*/                   NOP;
+        /*0810*/                   NOP;
+        /*0820*/                   NOP;
+        /*0830*/                   NOP;
+        /*0840*/                   NOP;
+        /*0850*/                   NOP;
+        /*0860*/                   NOP;
+        /*0870*/                   NOP;
+.L_x_3:
+
+
+//--------------------- SYMBOLS --------------------------
+
+	.type		.nv.reservedSmem.offset0,@object
+	.size		.nv.reservedSmem.offset0,0x4

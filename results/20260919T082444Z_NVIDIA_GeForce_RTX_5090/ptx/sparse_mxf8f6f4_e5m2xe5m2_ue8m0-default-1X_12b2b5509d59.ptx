@@ -1,0 +1,159 @@
+.version 9.0
+.target sm_120a
+.address_size 64
+
+.visible .entry bench(.param .u64 out_ptr, .param .u32 iters) {
+  .reg .pred %done, %skip;
+  .reg .u32 %i, %lim, %lane, %thread_idx, %cta_idx, %threads_per_cta, %warp, %wpb, %wg;
+  .reg .u64 %out, %off, %addr;
+  .reg .b32 %a<4>, %b<4>;
+  .reg .f32 %d<32>, %live;
+  .reg .b32 %meta;
+  .reg .b32 %sa, %sb;
+  ld.param.u64 %out, [out_ptr];
+  ld.param.u32 %lim, [iters];
+  mov.b32 %a0, 0x14141414;
+  mov.b32 %a1, 0x14141414;
+  mov.b32 %a2, 0x14141414;
+  mov.b32 %a3, 0x14141414;
+  mov.b32 %b0, 0x0c0c0c0c;
+  mov.b32 %b1, 0x0c0c0c0c;
+  mov.b32 %b2, 0x0c0c0c0c;
+  mov.b32 %b3, 0x0c0c0c0c;
+  mov.f32 %d0, 0f00000000;
+  mov.f32 %d1, 0f00000000;
+  mov.f32 %d2, 0f00000000;
+  mov.f32 %d3, 0f00000000;
+  mov.f32 %d4, 0f00000000;
+  mov.f32 %d5, 0f00000000;
+  mov.f32 %d6, 0f00000000;
+  mov.f32 %d7, 0f00000000;
+  mov.f32 %d8, 0f00000000;
+  mov.f32 %d9, 0f00000000;
+  mov.f32 %d10, 0f00000000;
+  mov.f32 %d11, 0f00000000;
+  mov.f32 %d12, 0f00000000;
+  mov.f32 %d13, 0f00000000;
+  mov.f32 %d14, 0f00000000;
+  mov.f32 %d15, 0f00000000;
+  mov.f32 %d16, 0f00000000;
+  mov.f32 %d17, 0f00000000;
+  mov.f32 %d18, 0f00000000;
+  mov.f32 %d19, 0f00000000;
+  mov.f32 %d20, 0f00000000;
+  mov.f32 %d21, 0f00000000;
+  mov.f32 %d22, 0f00000000;
+  mov.f32 %d23, 0f00000000;
+  mov.f32 %d24, 0f00000000;
+  mov.f32 %d25, 0f00000000;
+  mov.f32 %d26, 0f00000000;
+  mov.f32 %d27, 0f00000000;
+  mov.f32 %d28, 0f00000000;
+  mov.f32 %d29, 0f00000000;
+  mov.f32 %d30, 0f00000000;
+  mov.f32 %d31, 0f00000000;
+  mov.f32 %d0, 0f3f800000;
+  mov.f32 %d4, 0f40000000;
+  mov.f32 %d8, 0f40400000;
+  mov.f32 %d12, 0f40800000;
+  mov.f32 %d16, 0f40a00000;
+  mov.f32 %d20, 0f40c00000;
+  mov.f32 %d24, 0f40e00000;
+  mov.f32 %d28, 0f41000000;
+  mov.b32 %meta, 0x44444444;
+  mov.b32 %sa, 0x38383838;
+  mov.b32 %sb, 0x38383838;
+  mov.u32 %i, 0;
+LOOP:
+  setp.ge.u32 %done, %i, %lim;
+  @%done bra DONE;
+  mma.sync.aligned.kind::mxf8f6f4.sp::ordered_metadata.block_scale.m16n8k64.row.col.f32.e5m2.e5m2.f32.ue8m0
+    {%d0, %d1, %d2, %d3}, {%a0, %a1, %a2, %a3}, {%b0, %b1, %b2, %b3}, {%d0, %d1, %d2, %d3}, %meta, 0, %sa, {0, 0}, %sb, {0, 0};
+  mma.sync.aligned.kind::mxf8f6f4.sp::ordered_metadata.block_scale.m16n8k64.row.col.f32.e5m2.e5m2.f32.ue8m0
+    {%d4, %d5, %d6, %d7}, {%a0, %a1, %a2, %a3}, {%b0, %b1, %b2, %b3}, {%d4, %d5, %d6, %d7}, %meta, 0, %sa, {0, 0}, %sb, {0, 0};
+  mma.sync.aligned.kind::mxf8f6f4.sp::ordered_metadata.block_scale.m16n8k64.row.col.f32.e5m2.e5m2.f32.ue8m0
+    {%d8, %d9, %d10, %d11}, {%a0, %a1, %a2, %a3}, {%b0, %b1, %b2, %b3}, {%d8, %d9, %d10, %d11}, %meta, 0, %sa, {0, 0}, %sb, {0, 0};
+  mma.sync.aligned.kind::mxf8f6f4.sp::ordered_metadata.block_scale.m16n8k64.row.col.f32.e5m2.e5m2.f32.ue8m0
+    {%d12, %d13, %d14, %d15}, {%a0, %a1, %a2, %a3}, {%b0, %b1, %b2, %b3}, {%d12, %d13, %d14, %d15}, %meta, 0, %sa, {0, 0}, %sb, {0, 0};
+  mma.sync.aligned.kind::mxf8f6f4.sp::ordered_metadata.block_scale.m16n8k64.row.col.f32.e5m2.e5m2.f32.ue8m0
+    {%d16, %d17, %d18, %d19}, {%a0, %a1, %a2, %a3}, {%b0, %b1, %b2, %b3}, {%d16, %d17, %d18, %d19}, %meta, 0, %sa, {0, 0}, %sb, {0, 0};
+  mma.sync.aligned.kind::mxf8f6f4.sp::ordered_metadata.block_scale.m16n8k64.row.col.f32.e5m2.e5m2.f32.ue8m0
+    {%d20, %d21, %d22, %d23}, {%a0, %a1, %a2, %a3}, {%b0, %b1, %b2, %b3}, {%d20, %d21, %d22, %d23}, %meta, 0, %sa, {0, 0}, %sb, {0, 0};
+  mma.sync.aligned.kind::mxf8f6f4.sp::ordered_metadata.block_scale.m16n8k64.row.col.f32.e5m2.e5m2.f32.ue8m0
+    {%d24, %d25, %d26, %d27}, {%a0, %a1, %a2, %a3}, {%b0, %b1, %b2, %b3}, {%d24, %d25, %d26, %d27}, %meta, 0, %sa, {0, 0}, %sb, {0, 0};
+  mma.sync.aligned.kind::mxf8f6f4.sp::ordered_metadata.block_scale.m16n8k64.row.col.f32.e5m2.e5m2.f32.ue8m0
+    {%d28, %d29, %d30, %d31}, {%a0, %a1, %a2, %a3}, {%b0, %b1, %b2, %b3}, {%d28, %d29, %d30, %d31}, %meta, 0, %sa, {0, 0}, %sb, {0, 0};
+  mma.sync.aligned.kind::mxf8f6f4.sp::ordered_metadata.block_scale.m16n8k64.row.col.f32.e5m2.e5m2.f32.ue8m0
+    {%d0, %d1, %d2, %d3}, {%a0, %a1, %a2, %a3}, {%b0, %b1, %b2, %b3}, {%d0, %d1, %d2, %d3}, %meta, 0, %sa, {0, 0}, %sb, {0, 0};
+  mma.sync.aligned.kind::mxf8f6f4.sp::ordered_metadata.block_scale.m16n8k64.row.col.f32.e5m2.e5m2.f32.ue8m0
+    {%d4, %d5, %d6, %d7}, {%a0, %a1, %a2, %a3}, {%b0, %b1, %b2, %b3}, {%d4, %d5, %d6, %d7}, %meta, 0, %sa, {0, 0}, %sb, {0, 0};
+  mma.sync.aligned.kind::mxf8f6f4.sp::ordered_metadata.block_scale.m16n8k64.row.col.f32.e5m2.e5m2.f32.ue8m0
+    {%d8, %d9, %d10, %d11}, {%a0, %a1, %a2, %a3}, {%b0, %b1, %b2, %b3}, {%d8, %d9, %d10, %d11}, %meta, 0, %sa, {0, 0}, %sb, {0, 0};
+  mma.sync.aligned.kind::mxf8f6f4.sp::ordered_metadata.block_scale.m16n8k64.row.col.f32.e5m2.e5m2.f32.ue8m0
+    {%d12, %d13, %d14, %d15}, {%a0, %a1, %a2, %a3}, {%b0, %b1, %b2, %b3}, {%d12, %d13, %d14, %d15}, %meta, 0, %sa, {0, 0}, %sb, {0, 0};
+  mma.sync.aligned.kind::mxf8f6f4.sp::ordered_metadata.block_scale.m16n8k64.row.col.f32.e5m2.e5m2.f32.ue8m0
+    {%d16, %d17, %d18, %d19}, {%a0, %a1, %a2, %a3}, {%b0, %b1, %b2, %b3}, {%d16, %d17, %d18, %d19}, %meta, 0, %sa, {0, 0}, %sb, {0, 0};
+  mma.sync.aligned.kind::mxf8f6f4.sp::ordered_metadata.block_scale.m16n8k64.row.col.f32.e5m2.e5m2.f32.ue8m0
+    {%d20, %d21, %d22, %d23}, {%a0, %a1, %a2, %a3}, {%b0, %b1, %b2, %b3}, {%d20, %d21, %d22, %d23}, %meta, 0, %sa, {0, 0}, %sb, {0, 0};
+  mma.sync.aligned.kind::mxf8f6f4.sp::ordered_metadata.block_scale.m16n8k64.row.col.f32.e5m2.e5m2.f32.ue8m0
+    {%d24, %d25, %d26, %d27}, {%a0, %a1, %a2, %a3}, {%b0, %b1, %b2, %b3}, {%d24, %d25, %d26, %d27}, %meta, 0, %sa, {0, 0}, %sb, {0, 0};
+  mma.sync.aligned.kind::mxf8f6f4.sp::ordered_metadata.block_scale.m16n8k64.row.col.f32.e5m2.e5m2.f32.ue8m0
+    {%d28, %d29, %d30, %d31}, {%a0, %a1, %a2, %a3}, {%b0, %b1, %b2, %b3}, {%d28, %d29, %d30, %d31}, %meta, 0, %sa, {0, 0}, %sb, {0, 0};
+  mma.sync.aligned.kind::mxf8f6f4.sp::ordered_metadata.block_scale.m16n8k64.row.col.f32.e5m2.e5m2.f32.ue8m0
+    {%d0, %d1, %d2, %d3}, {%a0, %a1, %a2, %a3}, {%b0, %b1, %b2, %b3}, {%d0, %d1, %d2, %d3}, %meta, 0, %sa, {0, 0}, %sb, {0, 0};
+  mma.sync.aligned.kind::mxf8f6f4.sp::ordered_metadata.block_scale.m16n8k64.row.col.f32.e5m2.e5m2.f32.ue8m0
+    {%d4, %d5, %d6, %d7}, {%a0, %a1, %a2, %a3}, {%b0, %b1, %b2, %b3}, {%d4, %d5, %d6, %d7}, %meta, 0, %sa, {0, 0}, %sb, {0, 0};
+  mma.sync.aligned.kind::mxf8f6f4.sp::ordered_metadata.block_scale.m16n8k64.row.col.f32.e5m2.e5m2.f32.ue8m0
+    {%d8, %d9, %d10, %d11}, {%a0, %a1, %a2, %a3}, {%b0, %b1, %b2, %b3}, {%d8, %d9, %d10, %d11}, %meta, 0, %sa, {0, 0}, %sb, {0, 0};
+  mma.sync.aligned.kind::mxf8f6f4.sp::ordered_metadata.block_scale.m16n8k64.row.col.f32.e5m2.e5m2.f32.ue8m0
+    {%d12, %d13, %d14, %d15}, {%a0, %a1, %a2, %a3}, {%b0, %b1, %b2, %b3}, {%d12, %d13, %d14, %d15}, %meta, 0, %sa, {0, 0}, %sb, {0, 0};
+  mma.sync.aligned.kind::mxf8f6f4.sp::ordered_metadata.block_scale.m16n8k64.row.col.f32.e5m2.e5m2.f32.ue8m0
+    {%d16, %d17, %d18, %d19}, {%a0, %a1, %a2, %a3}, {%b0, %b1, %b2, %b3}, {%d16, %d17, %d18, %d19}, %meta, 0, %sa, {0, 0}, %sb, {0, 0};
+  mma.sync.aligned.kind::mxf8f6f4.sp::ordered_metadata.block_scale.m16n8k64.row.col.f32.e5m2.e5m2.f32.ue8m0
+    {%d20, %d21, %d22, %d23}, {%a0, %a1, %a2, %a3}, {%b0, %b1, %b2, %b3}, {%d20, %d21, %d22, %d23}, %meta, 0, %sa, {0, 0}, %sb, {0, 0};
+  mma.sync.aligned.kind::mxf8f6f4.sp::ordered_metadata.block_scale.m16n8k64.row.col.f32.e5m2.e5m2.f32.ue8m0
+    {%d24, %d25, %d26, %d27}, {%a0, %a1, %a2, %a3}, {%b0, %b1, %b2, %b3}, {%d24, %d25, %d26, %d27}, %meta, 0, %sa, {0, 0}, %sb, {0, 0};
+  mma.sync.aligned.kind::mxf8f6f4.sp::ordered_metadata.block_scale.m16n8k64.row.col.f32.e5m2.e5m2.f32.ue8m0
+    {%d28, %d29, %d30, %d31}, {%a0, %a1, %a2, %a3}, {%b0, %b1, %b2, %b3}, {%d28, %d29, %d30, %d31}, %meta, 0, %sa, {0, 0}, %sb, {0, 0};
+  mma.sync.aligned.kind::mxf8f6f4.sp::ordered_metadata.block_scale.m16n8k64.row.col.f32.e5m2.e5m2.f32.ue8m0
+    {%d0, %d1, %d2, %d3}, {%a0, %a1, %a2, %a3}, {%b0, %b1, %b2, %b3}, {%d0, %d1, %d2, %d3}, %meta, 0, %sa, {0, 0}, %sb, {0, 0};
+  mma.sync.aligned.kind::mxf8f6f4.sp::ordered_metadata.block_scale.m16n8k64.row.col.f32.e5m2.e5m2.f32.ue8m0
+    {%d4, %d5, %d6, %d7}, {%a0, %a1, %a2, %a3}, {%b0, %b1, %b2, %b3}, {%d4, %d5, %d6, %d7}, %meta, 0, %sa, {0, 0}, %sb, {0, 0};
+  mma.sync.aligned.kind::mxf8f6f4.sp::ordered_metadata.block_scale.m16n8k64.row.col.f32.e5m2.e5m2.f32.ue8m0
+    {%d8, %d9, %d10, %d11}, {%a0, %a1, %a2, %a3}, {%b0, %b1, %b2, %b3}, {%d8, %d9, %d10, %d11}, %meta, 0, %sa, {0, 0}, %sb, {0, 0};
+  mma.sync.aligned.kind::mxf8f6f4.sp::ordered_metadata.block_scale.m16n8k64.row.col.f32.e5m2.e5m2.f32.ue8m0
+    {%d12, %d13, %d14, %d15}, {%a0, %a1, %a2, %a3}, {%b0, %b1, %b2, %b3}, {%d12, %d13, %d14, %d15}, %meta, 0, %sa, {0, 0}, %sb, {0, 0};
+  mma.sync.aligned.kind::mxf8f6f4.sp::ordered_metadata.block_scale.m16n8k64.row.col.f32.e5m2.e5m2.f32.ue8m0
+    {%d16, %d17, %d18, %d19}, {%a0, %a1, %a2, %a3}, {%b0, %b1, %b2, %b3}, {%d16, %d17, %d18, %d19}, %meta, 0, %sa, {0, 0}, %sb, {0, 0};
+  mma.sync.aligned.kind::mxf8f6f4.sp::ordered_metadata.block_scale.m16n8k64.row.col.f32.e5m2.e5m2.f32.ue8m0
+    {%d20, %d21, %d22, %d23}, {%a0, %a1, %a2, %a3}, {%b0, %b1, %b2, %b3}, {%d20, %d21, %d22, %d23}, %meta, 0, %sa, {0, 0}, %sb, {0, 0};
+  mma.sync.aligned.kind::mxf8f6f4.sp::ordered_metadata.block_scale.m16n8k64.row.col.f32.e5m2.e5m2.f32.ue8m0
+    {%d24, %d25, %d26, %d27}, {%a0, %a1, %a2, %a3}, {%b0, %b1, %b2, %b3}, {%d24, %d25, %d26, %d27}, %meta, 0, %sa, {0, 0}, %sb, {0, 0};
+  mma.sync.aligned.kind::mxf8f6f4.sp::ordered_metadata.block_scale.m16n8k64.row.col.f32.e5m2.e5m2.f32.ue8m0
+    {%d28, %d29, %d30, %d31}, {%a0, %a1, %a2, %a3}, {%b0, %b1, %b2, %b3}, {%d28, %d29, %d30, %d31}, %meta, 0, %sa, {0, 0}, %sb, {0, 0};
+  add.u32 %i, %i, 1;
+  bra LOOP;
+DONE:
+  mov.f32 %live, %d0;
+  add.f32 %live, %live, %d4;
+  add.f32 %live, %live, %d8;
+  add.f32 %live, %live, %d12;
+  add.f32 %live, %live, %d16;
+  add.f32 %live, %live, %d20;
+  add.f32 %live, %live, %d24;
+  add.f32 %live, %live, %d28;
+  mov.u32 %lane, %laneid;
+  setp.ne.u32 %skip, %lane, 0;
+  @%skip bra EXIT;
+  mov.u32 %thread_idx, %tid.x;
+  mov.u32 %cta_idx, %ctaid.x;
+  mov.u32 %threads_per_cta, %ntid.x;
+  shr.u32 %warp, %thread_idx, 5;
+  shr.u32 %wpb, %threads_per_cta, 5;
+  mad.lo.u32 %wg, %cta_idx, %wpb, %warp;
+  mul.wide.u32 %off, %wg, 4;
+  add.u64 %addr, %out, %off;
+  st.global.f32 [%addr], %live;
+EXIT:
+  ret;
+}

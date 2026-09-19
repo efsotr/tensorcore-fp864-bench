@@ -1,0 +1,133 @@
+.version 9.0
+.target sm_120a
+.address_size 64
+
+.visible .entry bench(.param .u64 out_ptr, .param .u32 iters) {
+  .reg .pred %done, %skip;
+  .reg .u32 %i, %lim, %lane, %thread_idx, %cta_idx, %threads_per_cta, %warp, %wpb, %wg;
+  .reg .u64 %out, %off, %addr;
+  .reg .b32 %a<2>, %b<1>;
+  .reg .b32 %d<16>, %live;
+  ld.param.u64 %out, [out_ptr];
+  ld.param.u32 %lim, [iters];
+  mov.b32 %a0, 0x14141414;
+  mov.b32 %a1, 0x14141414;
+  mov.b32 %b0, 0x0c0c0c0c;
+  mov.b32 %d0, 0;
+  mov.b32 %d1, 0;
+  mov.b32 %d2, 0;
+  mov.b32 %d3, 0;
+  mov.b32 %d4, 0;
+  mov.b32 %d5, 0;
+  mov.b32 %d6, 0;
+  mov.b32 %d7, 0;
+  mov.b32 %d8, 0;
+  mov.b32 %d9, 0;
+  mov.b32 %d10, 0;
+  mov.b32 %d11, 0;
+  mov.b32 %d12, 0;
+  mov.b32 %d13, 0;
+  mov.b32 %d14, 0;
+  mov.b32 %d15, 0;
+  mov.b32 %d0, 0x3c003c00;
+  mov.b32 %d2, 0x40004000;
+  mov.b32 %d4, 0x42004200;
+  mov.b32 %d6, 0x44004400;
+  mov.b32 %d8, 0x45004500;
+  mov.b32 %d10, 0x46004600;
+  mov.b32 %d12, 0x47004700;
+  mov.b32 %d14, 0x48004800;
+  mov.u32 %i, 0;
+LOOP:
+  setp.ge.u32 %done, %i, %lim;
+  @%done bra DONE;
+  mma.sync.aligned.m16n8k16.row.col.f16.e5m2.e5m2.f16
+    {%d0, %d1}, {%a0, %a1}, {%b0}, {%d0, %d1};
+  mma.sync.aligned.m16n8k16.row.col.f16.e5m2.e5m2.f16
+    {%d2, %d3}, {%a0, %a1}, {%b0}, {%d2, %d3};
+  mma.sync.aligned.m16n8k16.row.col.f16.e5m2.e5m2.f16
+    {%d4, %d5}, {%a0, %a1}, {%b0}, {%d4, %d5};
+  mma.sync.aligned.m16n8k16.row.col.f16.e5m2.e5m2.f16
+    {%d6, %d7}, {%a0, %a1}, {%b0}, {%d6, %d7};
+  mma.sync.aligned.m16n8k16.row.col.f16.e5m2.e5m2.f16
+    {%d8, %d9}, {%a0, %a1}, {%b0}, {%d8, %d9};
+  mma.sync.aligned.m16n8k16.row.col.f16.e5m2.e5m2.f16
+    {%d10, %d11}, {%a0, %a1}, {%b0}, {%d10, %d11};
+  mma.sync.aligned.m16n8k16.row.col.f16.e5m2.e5m2.f16
+    {%d12, %d13}, {%a0, %a1}, {%b0}, {%d12, %d13};
+  mma.sync.aligned.m16n8k16.row.col.f16.e5m2.e5m2.f16
+    {%d14, %d15}, {%a0, %a1}, {%b0}, {%d14, %d15};
+  mma.sync.aligned.m16n8k16.row.col.f16.e5m2.e5m2.f16
+    {%d0, %d1}, {%a0, %a1}, {%b0}, {%d0, %d1};
+  mma.sync.aligned.m16n8k16.row.col.f16.e5m2.e5m2.f16
+    {%d2, %d3}, {%a0, %a1}, {%b0}, {%d2, %d3};
+  mma.sync.aligned.m16n8k16.row.col.f16.e5m2.e5m2.f16
+    {%d4, %d5}, {%a0, %a1}, {%b0}, {%d4, %d5};
+  mma.sync.aligned.m16n8k16.row.col.f16.e5m2.e5m2.f16
+    {%d6, %d7}, {%a0, %a1}, {%b0}, {%d6, %d7};
+  mma.sync.aligned.m16n8k16.row.col.f16.e5m2.e5m2.f16
+    {%d8, %d9}, {%a0, %a1}, {%b0}, {%d8, %d9};
+  mma.sync.aligned.m16n8k16.row.col.f16.e5m2.e5m2.f16
+    {%d10, %d11}, {%a0, %a1}, {%b0}, {%d10, %d11};
+  mma.sync.aligned.m16n8k16.row.col.f16.e5m2.e5m2.f16
+    {%d12, %d13}, {%a0, %a1}, {%b0}, {%d12, %d13};
+  mma.sync.aligned.m16n8k16.row.col.f16.e5m2.e5m2.f16
+    {%d14, %d15}, {%a0, %a1}, {%b0}, {%d14, %d15};
+  mma.sync.aligned.m16n8k16.row.col.f16.e5m2.e5m2.f16
+    {%d0, %d1}, {%a0, %a1}, {%b0}, {%d0, %d1};
+  mma.sync.aligned.m16n8k16.row.col.f16.e5m2.e5m2.f16
+    {%d2, %d3}, {%a0, %a1}, {%b0}, {%d2, %d3};
+  mma.sync.aligned.m16n8k16.row.col.f16.e5m2.e5m2.f16
+    {%d4, %d5}, {%a0, %a1}, {%b0}, {%d4, %d5};
+  mma.sync.aligned.m16n8k16.row.col.f16.e5m2.e5m2.f16
+    {%d6, %d7}, {%a0, %a1}, {%b0}, {%d6, %d7};
+  mma.sync.aligned.m16n8k16.row.col.f16.e5m2.e5m2.f16
+    {%d8, %d9}, {%a0, %a1}, {%b0}, {%d8, %d9};
+  mma.sync.aligned.m16n8k16.row.col.f16.e5m2.e5m2.f16
+    {%d10, %d11}, {%a0, %a1}, {%b0}, {%d10, %d11};
+  mma.sync.aligned.m16n8k16.row.col.f16.e5m2.e5m2.f16
+    {%d12, %d13}, {%a0, %a1}, {%b0}, {%d12, %d13};
+  mma.sync.aligned.m16n8k16.row.col.f16.e5m2.e5m2.f16
+    {%d14, %d15}, {%a0, %a1}, {%b0}, {%d14, %d15};
+  mma.sync.aligned.m16n8k16.row.col.f16.e5m2.e5m2.f16
+    {%d0, %d1}, {%a0, %a1}, {%b0}, {%d0, %d1};
+  mma.sync.aligned.m16n8k16.row.col.f16.e5m2.e5m2.f16
+    {%d2, %d3}, {%a0, %a1}, {%b0}, {%d2, %d3};
+  mma.sync.aligned.m16n8k16.row.col.f16.e5m2.e5m2.f16
+    {%d4, %d5}, {%a0, %a1}, {%b0}, {%d4, %d5};
+  mma.sync.aligned.m16n8k16.row.col.f16.e5m2.e5m2.f16
+    {%d6, %d7}, {%a0, %a1}, {%b0}, {%d6, %d7};
+  mma.sync.aligned.m16n8k16.row.col.f16.e5m2.e5m2.f16
+    {%d8, %d9}, {%a0, %a1}, {%b0}, {%d8, %d9};
+  mma.sync.aligned.m16n8k16.row.col.f16.e5m2.e5m2.f16
+    {%d10, %d11}, {%a0, %a1}, {%b0}, {%d10, %d11};
+  mma.sync.aligned.m16n8k16.row.col.f16.e5m2.e5m2.f16
+    {%d12, %d13}, {%a0, %a1}, {%b0}, {%d12, %d13};
+  mma.sync.aligned.m16n8k16.row.col.f16.e5m2.e5m2.f16
+    {%d14, %d15}, {%a0, %a1}, {%b0}, {%d14, %d15};
+  add.u32 %i, %i, 1;
+  bra LOOP;
+DONE:
+  mov.b32 %live, %d0;
+  xor.b32 %live, %live, %d2;
+  xor.b32 %live, %live, %d4;
+  xor.b32 %live, %live, %d6;
+  xor.b32 %live, %live, %d8;
+  xor.b32 %live, %live, %d10;
+  xor.b32 %live, %live, %d12;
+  xor.b32 %live, %live, %d14;
+  mov.u32 %lane, %laneid;
+  setp.ne.u32 %skip, %lane, 0;
+  @%skip bra EXIT;
+  mov.u32 %thread_idx, %tid.x;
+  mov.u32 %cta_idx, %ctaid.x;
+  mov.u32 %threads_per_cta, %ntid.x;
+  shr.u32 %warp, %thread_idx, 5;
+  shr.u32 %wpb, %threads_per_cta, 5;
+  mad.lo.u32 %wg, %cta_idx, %wpb, %warp;
+  mul.wide.u32 %off, %wg, 4;
+  add.u64 %addr, %out, %off;
+  st.global.b32 [%addr], %live;
+EXIT:
+  ret;
+}
