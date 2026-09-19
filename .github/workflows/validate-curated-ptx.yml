@@ -25,6 +25,8 @@ jobs:
 
       - name: Generate curated PTX without a GPU
         run: |
+          ln -sf /usr/local/cuda/lib64/stubs/libcuda.so /usr/local/cuda/lib64/stubs/libcuda.so.1
+          export LD_LIBRARY_PATH="/usr/local/cuda/lib64/stubs:$LD_LIBRARY_PATH"
           ./build/tensorcore-fp864x-fp664-bench --emit-ptx-dir generated-ptx
           test "$(find generated-ptx -maxdepth 1 -name '*.ptx' | wc -l)" -eq 19
 
