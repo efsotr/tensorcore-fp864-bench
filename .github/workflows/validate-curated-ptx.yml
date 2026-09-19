@@ -1,0 +1,43 @@
+name: Validate curated PTX
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  ptxas:
+    runs-on: ubuntu-latest
+    container:
+      image: nvidia/cuda:13.0.0-devel-ubuntu24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build tools
+        run: |
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends cmake g++
+
+      - name: Build PTX generator
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build -j2 --target tensorcore-fp864x-fp664-bench
+
+      - name: Generate curated PTX without a GPU
+        run: |
+          ./build/tensorcore-fp864x-fp664-bench --emit-ptx-dir generated-ptx
+          test "$(find generated-ptx -maxdepth 1 -name '*.ptx' | wc -l)" -eq 19
+
+      - name: Assemble every generated PTX with ptxas
+        run: |
+          ptxas --version
+          mkdir -p generated-cubin
+          failed=0
+          for ptx in generated-ptx/*.ptx; do
+            name="$(basename "$ptx" .ptx)"
+            echo "PTXAS $ptx"
+            if ! ptxas -arch=sm_120a "$ptx" -o "generated-cubin/$name.cubin"; then
+              failed=1
+            fi
+          done
+          exit "$failed"
