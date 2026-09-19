@@ -58,6 +58,7 @@ namespace fs = std::filesystem;
 struct CuratedOptions {
   Options bench;
   std::string output_dir;
+  std::string emit_ptx_dir;
   bool quiet_cases = false;
 };
 
@@ -304,6 +305,7 @@ CuratedOptions parse_curated_args(int argc, char** argv) {
     else if (a == "--list") o.bench.list_only = true;
     else if (a == "--verbose-jit") o.bench.verbose_jit = true;
     else if (a == "--output-dir") o.output_dir = value("--output-dir");
+    else if (a == "--emit-ptx-dir") o.emit_ptx_dir = value("--emit-ptx-dir");
     else if (a == "--quiet-cases") o.quiet_cases = true;
     else if (a == "--include-probes" || a == "--probes-only" || a == "--all-operands") {
       throw std::runtime_error(
@@ -312,7 +314,7 @@ CuratedOptions parse_curated_args(int argc, char** argv) {
     } else if (a == "-h" || a == "--help") {
       std::cout
           << "--device N --iters N --blocks-per-sm N --chains {1,2,4,8} --repeats N\n"
-          << "--filter TEXT --list --verbose-jit --output-dir DIR --quiet-cases\n";
+          << "--filter TEXT --list --verbose-jit --output-dir DIR --emit-ptx-dir DIR --quiet-cases\n";
       std::exit(0);
     } else {
       throw std::runtime_error("unknown option: " + a);
@@ -493,6 +495,27 @@ int main(int argc, char** argv) {
       std::cout << "listed=" << shown
                 << " curated_manifest=" << curated_case_names().size() << '\n';
       return shown ? 0 : 5;
+    }
+
+    // CPU-only export path for validating the exact generated PTX with ptxas.
+    // This deliberately runs before CUDA driver initialization so CI and other
+    // systems without a GPU can still syntax-check the curated manifest.
+    if (!ropt.emit_ptx_dir.empty()) {
+      const fs::path emit_dir = ropt.emit_ptx_dir;
+      fs::create_directories(emit_dir);
+      size_t emitted = 0;
+      for (const Case& c : cases) {
+        if (!is_curated_case(c)) continue;
+        if (!opt.filter.empty() && c.name.find(opt.filter) == std::string::npos) continue;
+        const fs::path ptx_path = emit_dir / (slug(c.name) + ".ptx");
+        write_text_file(ptx_path, build_ptx(c, opt.chains));
+        std::cout << "EMIT_PTX name=" << c.name
+                  << " path=\"" << ptx_path.string() << "\"\n";
+        ++emitted;
+      }
+      std::cout << "emitted=" << emitted
+                << " curated_manifest=" << curated_case_names().size() << '\n';
+      return emitted ? 0 : 5;
     }
 
     check(cuInit(0), "cuInit");
