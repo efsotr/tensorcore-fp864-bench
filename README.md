@@ -145,6 +145,13 @@ For a smaller dense-only smoke/performance suite, run:
 ./build/tensorcore-fp864x-fp664-bench
 ```
 
+The curated generator can also emit the exact 19 PTX modules without initializing
+the CUDA driver, which is useful for CPU-only `ptxas` syntax validation:
+
+```bash
+./build/tensorcore-fp864x-fp664-bench --emit-ptx-dir generated-ptx
+```
+
 The curated 19-case suite uses PTX 9.0-compatible cases only, prints a final family peak table, and writes a full diagnostic bundle:
 
 ```text
