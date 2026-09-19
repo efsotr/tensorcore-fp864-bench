@@ -161,7 +161,7 @@ std::string build_ptx(const Case& c, unsigned chains) {
     << ".address_size 64\n\n"
     << ".visible .entry bench(.param .u64 out_ptr, .param .u32 iters) {\n"
     << "  .reg .pred %done, %skip;\n"
-    << "  .reg .u32 %i, %lim, %lane, %tid, %cta, %ntid, %warp, %wpb, %wg;\n"
+    << "  .reg .u32 %i, %lim, %lane, %thread_idx, %cta_idx, %threads_per_cta, %warp, %wpb, %wg;\n"
     << "  .reg .u64 %out, %off, %addr;\n"
     << "  .reg .b32 %a<" << c.a_regs << ">, %b<" << c.b_regs << ">;\n";
 
@@ -250,12 +250,12 @@ std::string build_ptx(const Case& c, unsigned chains) {
   p << "  mov.u32 %lane, %laneid;\n"
     << "  setp.ne.u32 %skip, %lane, 0;\n"
     << "  @%skip bra EXIT;\n"
-    << "  mov.u32 %tid, %tid.x;\n"
-    << "  mov.u32 %cta, %ctaid.x;\n"
-    << "  mov.u32 %ntid, %ntid.x;\n"
-    << "  shr.u32 %warp, %tid, 5;\n"
-    << "  shr.u32 %wpb, %ntid, 5;\n"
-    << "  mad.lo.u32 %wg, %cta, %wpb, %warp;\n"
+    << "  mov.u32 %thread_idx, %tid.x;\n"
+    << "  mov.u32 %cta_idx, %ctaid.x;\n"
+    << "  mov.u32 %threads_per_cta, %ntid.x;\n"
+    << "  shr.u32 %warp, %thread_idx, 5;\n"
+    << "  shr.u32 %wpb, %threads_per_cta, 5;\n"
+    << "  mad.lo.u32 %wg, %cta_idx, %wpb, %warp;\n"
     << "  mul.wide.u32 %off, %wg, 4;\n"
     << "  add.u64 %addr, %out, %off;\n";
   if (c.acc_f16) p << "  st.global.b32 [%addr], %live;\n";
